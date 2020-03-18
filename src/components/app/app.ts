@@ -12,7 +12,9 @@ export default class App {
 	 * Initializes the app
 	 */
 	public async initialize(): Promise<void> {
-		const components: IComponent[] = [];
+		const components: IComponent[] = [
+			///Add your new components here
+		];
 
 		this.manger = new Manager(components);
 		this.events = new EnvetsHandler(components);
@@ -30,7 +32,9 @@ export default class App {
 			throw new Error("Initialize manager first!");
 		}
 
-		return {};
+		return {
+			///Return your components init args here
+		};
 	}
 
 	/**

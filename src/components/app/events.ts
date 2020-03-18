@@ -20,6 +20,7 @@ export default class EnvetsHandler {
 	 * Registers all events for components
 	 */
 	public async registerEvents(): Promise<void> {
+		///Register your events here
 		///this.template.on("example", () => {});
 	}
 }

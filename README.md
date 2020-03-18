@@ -1,5 +1,5 @@
 # The Framework [BASE]
-For easy development js/ts applications.
+For easy development of js/ts applications.
 
 This is **base** branch! Check **node** or **browser** for platform specific development.
 

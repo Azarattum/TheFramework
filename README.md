@@ -1,7 +1,7 @@
 # The Framework [BROWSER]
 For easy development js/ts applications.
 
-This is **browser** branch. Check **node** for NodeJS development.
+This is **browser** branch. Check [**node**](https://github.com/Azarattum/TheFramework/tree/node) for NodeJS development.
 
 ## Features & Technologies:
   - Uses **Typescript**

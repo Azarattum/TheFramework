@@ -7,7 +7,6 @@
 	"htmlWhitespaceSensitivity": "css",
 	"singleQuote": false,
 	"tabWidth": 4,
-    "parser": "typescript",
-    "semi": true,
+	"semi": true,
 	"trailingComma": "none"
 }

@@ -81,6 +81,21 @@ export default function Controller<T extends string>() {
 				this.relation
 			);
 		}
+
+		/**
+		 * The container associated with current controller
+		 */
+		protected get container(): HTMLElement {
+			const container = document.querySelector(
+				`[controller=${(this as any).name.toLowerCase()}]`
+			);
+
+			if (!container) {
+				throw new Error(`Container ${(this as any).name} not found!`);
+			}
+
+			return container as HTMLElement;
+		}
 	}
 
 	//Return controller with specific typings

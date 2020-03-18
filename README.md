@@ -1,7 +1,7 @@
 # The Framework [BASE]
 For easy development of js/ts applications.
 
-This is **base** branch! Check **node** or **browser** for platform specific development.
+This is **base** branch! Check [**node**](https://github.com/Azarattum/TheFramework/tree/node) or [**browser**](https://github.com/Azarattum/TheFramework/tree/browser) for platform specific development.
 
 ## Features & Technologies:
   - Uses **Typescript**

@@ -101,3 +101,31 @@ export default function Controller<T extends string>() {
 	//Return controller with specific typings
 	return Controller;
 }
+
+/**
+ * Smart controller shortcut to the nearest controller property in DOM
+ */
+(globalThis as any).Controller = new Proxy(
+	{},
+	{
+		get: (obj: {}, prop: string) => {
+			if (!event) return;
+			let node = event.target as HTMLElement;
+			let controller = null;
+			//Search for the nearest node with conroller
+			while (controller == null) {
+				controller = node.getAttribute("controller");
+				if (node.parentElement) {
+					node = node.parentElement;
+				} else {
+					return;
+				}
+			}
+
+			//Trying to return exposed controller's function
+			controller =
+				controller.charAt(0).toUpperCase() + controller.slice(1);
+			return (globalThis as any)[controller][prop];
+		}
+	}
+);

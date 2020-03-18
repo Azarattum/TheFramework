@@ -8,6 +8,6 @@ export default class Template extends Service<"">() {
 	 * Initialization of Template service
 	 */
 	public static async initialize(): Promise<void> {
-		///Service initialization goes here
+		///Service initialization logic goes here
 	}
 }

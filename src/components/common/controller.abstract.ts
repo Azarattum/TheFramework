@@ -86,13 +86,16 @@ export default function Controller<T extends string>() {
 		 * The container associated with current controller
 		 */
 		protected get container(): HTMLElement {
-			const container = this.sender
+			let container = this.sender
 				? this.sender.closest(
 						`[controller=${(this as any).name.toLowerCase()}]`
 				  )
-				: document.querySelector(
-						`[controller=${(this as any).name.toLowerCase()}]`
-				  );
+				: null;
+			container =
+				container ||
+				document.querySelector(
+					`[controller=${(this as any).name.toLowerCase()}]`
+				);
 
 			if (!container) {
 				throw new Error(`Container ${(this as any).name} not found!`);

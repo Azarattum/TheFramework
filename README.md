@@ -13,6 +13,7 @@ This is **browser** branch. Check [**node**](https://github.com/Azarattum/TheFra
   - Preconfigured WebWorkers for Webpack
   - Preconfigured ServiceWorker from **Workbox Plugin**
   - Preconfigured GL Shaders loader
+  - Preconfigured **Chrome Debugger**
   - Event-driven
   - Strict naming and hierarchy
   - Lightweight

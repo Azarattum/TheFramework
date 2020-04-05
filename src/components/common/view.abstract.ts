@@ -48,9 +48,26 @@ export default abstract class View {
 		if (!args) {
 			args = {};
 		}
-		if (!template) return;
 
-		this.container.innerHTML = template(args);
+		this.container.forEach(x => {
+			if (!template) return;
+
+			//Wrap functional arguments
+			const xArgs = {};
+			for (const key in args) {
+				if (args.hasOwnProperty(key)) {
+					const value = (args as any)[key];
+					if (typeof value == "function") {
+						(xArgs as any)[key] = (...args: any[]) => {
+							return value(x, ...args);
+						};
+					} else {
+						(xArgs as any)[key] = value;
+					}
+				}
+			}
+			x.innerHTML = template(xArgs);
+		});
 		this.template = null;
 	}
 
@@ -60,7 +77,7 @@ export default abstract class View {
 	 */
 	public toggle(visible: boolean | null = null): void {
 		if (visible == null) {
-			if (this.container.style.display == "none") {
+			if (this.container[0].style.display == "none") {
 				visible = true;
 			} else {
 				visible = false;
@@ -68,17 +85,21 @@ export default abstract class View {
 		}
 
 		if (visible) {
-			this.container.style.display = "block";
+			this.container.forEach(x => {
+				x.style.display = "block";
+			});
 		} else {
-			this.container.style.display = "none";
+			this.container.forEach(x => {
+				x.style.display = "none";
+			});
 		}
 	}
 
 	/**
 	 * The container associated with current view
 	 */
-	private get container(): HTMLElement {
-		const container = document.querySelector(
+	private get container(): NodeListOf<HTMLElement> {
+		const container = document.querySelectorAll(
 			`[view=${this.name.toLowerCase()}]`
 		);
 
@@ -86,6 +107,6 @@ export default abstract class View {
 			throw new Error(`Container ${this.name} not found!`);
 		}
 
-		return container as HTMLElement;
+		return container as NodeListOf<HTMLElement>;
 	}
 }

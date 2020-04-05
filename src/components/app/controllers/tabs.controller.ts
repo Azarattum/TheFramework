@@ -56,7 +56,7 @@ export default class Tabs extends Controller<"tabchanged">() {
 				(x as HTMLElement).style.display = "none";
 			});
 			(selected as HTMLElement).style.display = "block";
-			name = selected.getAttribute("name");
+			name = selected.getAttribute("tab");
 		}
 
 		this.emit("tabchanged", name);

@@ -1,6 +1,7 @@
 const Path = require("path");
 const TerserPlugin = require("terser-webpack-plugin");
 const WebpackCleanupPlugin = require("webpack-cleanup-plugin");
+const NodeExternals = require("webpack-node-externals");
 
 const prod = process.argv.indexOf("-p") !== -1;
 
@@ -43,6 +44,7 @@ module.exports = {
 			}
 		]
 	},
+	externals: [NodeExternals()],
 	resolve: {
 		extensions: [".ts", ".js"]
 	},

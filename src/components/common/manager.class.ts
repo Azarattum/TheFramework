@@ -14,8 +14,9 @@ export default class Manager {
 	 * @param components Components to manage
 	 */
 	public constructor(components: IComponent[]) {
+		const typesOrder = ["Services", "Views", "Controllers"];
 		this.components = components.sort((a, b) =>
-			a.type >= b.type ? 1 : -1
+			typesOrder.indexOf(a.type) >= typesOrder.indexOf(b.type) ? 1 : -1
 		);
 	}
 

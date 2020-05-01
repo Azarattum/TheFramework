@@ -5,13 +5,23 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const WorkboxPlugin = require("workbox-webpack-plugin");
 
 //Register use of data binding templates for the index page
-const data = new Proxy({},{
+const handler = {
 	get: (object, property) => {
-			if (property == Symbol.toPrimitive) return () => "";
-			return `<placeholder ${property}/><!--"placeholders __postfix_${property}="-->`;
+		if (
+			property == Symbol.toPrimitive ||
+			property == "toJSON" ||
+			property == "toString"
+		) {
+			return () => 
+				`<placeholder ${object._}/><!--"placeholders __postfix_${object._}="-->`;
 		}
+		const newObject = {
+			_: (object._ ? object._ + "." : "") + property
+		};
+		return new Proxy(newObject, handler);
 	}
-);
+};
+const data = new Proxy({ _: "" }, handler);
 
 const prod = process.argv.indexOf("-p") !== -1;
 

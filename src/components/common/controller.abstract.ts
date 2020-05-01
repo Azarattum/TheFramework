@@ -105,9 +105,9 @@ export default function Controller<T extends string>() {
 							}
 
 							const prefix =
-								placeholder.getAttribute("_" + name) || "";
+								placeholder.getAttribute("_" + attr.name) || "";
 							const postfix =
-								placeholder.getAttribute(name + "_") || "";
+								placeholder.getAttribute(attr.name + "_") || "";
 
 							map.get(name)?.push({
 								prefix: prefix,
@@ -123,7 +123,7 @@ export default function Controller<T extends string>() {
 					const attributes = placeholder.attributes;
 					for (const attribute of attributes) {
 						const match = attribute.value.match(
-							/^(.*)<placeholder (\w+)\/><!--/
+							/^(.*)<placeholder ([\w.]+)\/><!--/
 						);
 						if (!match) continue;
 
@@ -157,7 +157,7 @@ export default function Controller<T extends string>() {
 							postfix: postfix,
 							element: attribute
 						});
-						attribute.value = "";
+						attribute.value = prefix + postfix;
 						placeholder.removeAttribute(`__postfix_${name}`);
 					}
 				}
@@ -237,68 +237,90 @@ export default function Controller<T extends string>() {
 		/**
 		 * Binded to the controller data
 		 */
-		protected get data(): Record<string, string> {
+		protected get data(): Record<string, any> {
 			if (!this.placeholders) {
 				throw new Error("Use this.bind() to bind your data first!");
 			}
 
-			return new Proxy(
-				{},
-				{
-					get: (object: {}, property: string) => {
-						if (!this.placeholders) return undefined;
-
-						let elements: IPlaceholder[] | undefined = undefined;
-
-						if (this.sender) {
-							elements = this.placeholders
-								.get(this.container)
-								?.get(property);
-						} else {
-							this.placeholders.forEach(map => {
-								elements = elements || map.get(property);
-							});
-						}
-
-						if (!elements || elements.length <= 0) return undefined;
-						const text =
-							elements[0].element.nodeValue ||
-							elements[0].element.textContent;
-
-						return text?.slice(
-							elements[0].prefix.length,
-							text.length - elements[0].postfix.length
-						);
-					},
-					set: (object: {}, property: string, value: string) => {
-						if (!this.placeholders) return false;
-
-						let elements: IPlaceholder[] | undefined = undefined;
-
-						if (this.sender) {
-							elements = this.placeholders
-								.get(this.container)
-								?.get(property);
-						} else {
-							elements = [];
-							this.placeholders.forEach(map => {
-								const prop = map.get(property);
-								if (prop) elements?.push(...prop);
-							});
-						}
-
-						if (!elements) return true;
-
-						elements.forEach(x => {
-							x.element.nodeValue = x.prefix + value + x.postfix;
-							x.element.textContent =
-								x.prefix + value + x.postfix;
-						});
-
-						return true;
+			const handler = {
+				get: (object: { _: string }, property: any): any => {
+					//Nothing found
+					if (
+						property == Symbol.toPrimitive ||
+						property == "toJSON" ||
+						property == "toString"
+					) {
+						return () => undefined;
 					}
+
+					//Prepare new object for recursive search
+					const newObject = {
+						_: (object._ ? object._ + "." : "") + property
+					};
+
+					if (!this.placeholders) return undefined;
+
+					let elements: IPlaceholder[] | undefined = undefined;
+
+					//Try to find the element
+					if (this.sender) {
+						elements = this.placeholders
+							.get(this.container)
+							?.get(newObject._);
+					} else {
+						this.placeholders.forEach(map => {
+							elements = elements || map.get(newObject._);
+						});
+					}
+
+					//Continue searching
+					if (!elements || elements.length <= 0) {
+						return new Proxy(newObject, handler);
+					}
+
+					const text =
+						elements[0].element.nodeValue ||
+						elements[0].element.textContent;
+
+					return text?.slice(
+						elements[0].prefix.length,
+						text.length - elements[0].postfix.length
+					);
+				},
+				set: (
+					object: { _: string },
+					property: string,
+					value: string
+				) => {
+					if (!this.placeholders) return false;
+
+					property = (object._ ? object._ + "." : "") + property;
+					let elements: IPlaceholder[] | undefined = undefined;
+
+					if (this.sender) {
+						elements = this.placeholders
+							.get(this.container)
+							?.get(property);
+					} else {
+						elements = [];
+						this.placeholders.forEach(map => {
+							const prop = map.get(property);
+							if (prop) elements?.push(...prop);
+						});
+					}
+
+					if (!elements) return true;
+
+					elements.forEach(x => {
+						x.element.nodeValue = x.prefix + value + x.postfix;
+						x.element.textContent = x.prefix + value + x.postfix;
+					});
+
+					return true;
 				}
-			);
+			};
+
+			return new Proxy({ _: "" }, handler);
 		}
 	}
 

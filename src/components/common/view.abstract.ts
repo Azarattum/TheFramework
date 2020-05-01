@@ -104,15 +104,25 @@ export default abstract class View {
 	 * Data proxy for placeholders
 	 */
 	private get data(): Record<string, string> {
-		return new Proxy(
-			{},
-			{
-				get: (object: {}, property: any): any => {
-					if (property == Symbol.toPrimitive) return (): string => "";
-					return `<placeholder ${property}/><!--"placeholders __postfix_${property}="-->`;
+		const handler = {
+			get: (object: { _: string }, property: any): any => {
+				if (
+					property == Symbol.toPrimitive ||
+					property == "toJSON" ||
+					property == "toString"
+				) {
+					return (): string =>
+						`<placeholder ${object._}/><!--"placeholders __postfix_${object._}="-->`;
 				}
+
+				const newObject = {
+					_: (object._ ? object._ + "." : "") + property
+				};
+				return new Proxy(newObject, handler);
 			}
-		);
+		};
+
+		return new Proxy({ _: "" }, handler);
 	}
 
 	/**

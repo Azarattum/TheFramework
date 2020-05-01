@@ -14,6 +14,8 @@ This is **browser** branch. Check [**node**](https://github.com/Azarattum/TheFra
   - Preconfigured ServiceWorker from **Workbox Plugin**
   - Preconfigured GL Shaders loader
   - Preconfigured **Chrome Debugger**
+  - Controller scopes
+  - 2-Way data binding
   - Event-driven
   - Strict naming and hierarchy
   - Lightweight

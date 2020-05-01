@@ -109,7 +109,7 @@ export default abstract class View {
 			{
 				get: (object: {}, property: any): any => {
 					if (property == Symbol.toPrimitive) return (): string => "";
-					return `<placeholder ${property}/><!--"placeholders="-->`;
+					return `<placeholder ${property}/><!--"placeholders __postfix_${property}="-->`;
 				}
 			}
 		);

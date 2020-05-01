@@ -7,7 +7,7 @@ const WorkboxPlugin = require("workbox-webpack-plugin");
 //Register use of data binding templates for the index page
 const data = new Proxy({},{
 	get: (object, property) => {
-			if (property == Symbol.toPrimitive)return () => "";
+			if (property == Symbol.toPrimitive) return () => "";
 			return `<placeholder ${property}/><!--"placeholders __postfix_${property}="-->`;
 		}
 	}

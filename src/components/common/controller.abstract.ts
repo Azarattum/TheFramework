@@ -48,8 +48,6 @@ export default function Controller<T extends string>() {
 				const map = new Map();
 				this.registerContainer(container as HTMLElement, map);
 			}
-
-			console.log(this.placeholders);
 		}
 
 		/**

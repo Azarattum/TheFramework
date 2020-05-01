@@ -123,7 +123,7 @@ export default function Controller<T extends string>() {
 					const attributes = placeholder.attributes;
 					for (const attribute of attributes) {
 						const match = attribute.value.match(
-							/^(.*)<placeholder ([\w.]+)\/><!--/
+							/^(.*)<placeholder ([\w.]+)><!--/
 						);
 						if (!match) continue;
 
@@ -132,7 +132,7 @@ export default function Controller<T extends string>() {
 						const postfix =
 							placeholder
 								.getAttribute(`__postfix_${name}`)
-								?.slice(3) || "";
+								?.slice(17) || "";
 
 						if (!map.has(name)) {
 							map.set(name, []);

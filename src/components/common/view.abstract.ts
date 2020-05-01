@@ -112,7 +112,7 @@ export default abstract class View {
 					property == "toString"
 				) {
 					return (): string =>
-						`<placeholder ${object._}/><!--"placeholders __postfix_${object._}="-->`;
+						`<placeholder ${object._}><!--"placeholders __postfix_${object._}="--></placeholder>`;
 				}
 
 				const newObject = {

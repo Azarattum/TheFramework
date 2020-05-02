@@ -154,7 +154,7 @@ export default function Controller<T extends string>() {
 						| Binding
 						| undefined;
 					const data = binding?.get(path);
-					if (data) return data;
+					if (data != null) return data;
 
 					//Continue searching
 					return new Proxy({ path }, handler);

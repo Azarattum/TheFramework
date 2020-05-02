@@ -228,6 +228,25 @@ export default class Binding {
 	 */
 	public set(path: string, value: any): boolean {
 		let changed = false;
+		if (typeof value == "object") {
+			for (const key in value) {
+				changed = this.set(path + "." + key, value[key]) || changed;
+				const property = Object.getOwnPropertyDescriptor(value, key);
+				Object.defineProperty(value, key, {
+					get: () => {
+						if (property?.get) property.get();
+						return this.get(path + "." + key);
+					},
+					set: val => {
+						if (property?.set) property.set(val);
+						this.set(path + "." + key, val);
+					},
+					configurable: true
+				});
+			}
+
+			return changed;
+		}
 
 		//Update binded elements
 		this.binds?.forEach(binding => {
@@ -272,7 +291,7 @@ export default class Binding {
 		});
 
 		//Update data value
-		if (changed) {
+		if (changed && value !== undefined) {
 			let object: any = this.data;
 			const parts = path.split(".");
 			const last = parts.pop();

@@ -39,10 +39,10 @@ export default class Binding {
 			"input[bind]"
 		) as NodeListOf<HTMLInputElement>;
 
-		placeholders.forEach(this.bindElement.bind(this));
 		attribholders.forEach(this.bindAttribute.bind(this));
-		binds.forEach(this.bindInput.bind(this));
 		loops.forEach(this.bindLoop.bind(this));
+		placeholders.forEach(this.bindElement.bind(this));
+		binds.forEach(this.bindInput.bind(this));
 
 		this.binds = binds;
 	}
@@ -66,6 +66,15 @@ export default class Binding {
 
 		const placeholder = { prefix, postfix, element };
 		this.placeholders.get(path)?.add(placeholder);
+
+		let container = element;
+		if (element instanceof Attr) {
+			container = element.ownerElement as HTMLElement;
+		}
+		container.addEventListener("removed", () => {
+			this.placeholders.get(path)?.delete(placeholder);
+		});
+
 		return placeholder;
 	}
 
@@ -77,7 +86,7 @@ export default class Binding {
 		const path = element.attributes.item(0)?.name;
 		if (!path || !document.contains(element)) return;
 
-		const placeholder = this.register(path, element);
+		this.register(path, element);
 		element.innerHTML = "";
 
 		if ((element as any).observed) return;
@@ -91,10 +100,6 @@ export default class Binding {
 		});
 		observer.observe(element, { childList: true });
 		(element as any).observed = true;
-
-		element.addEventListener("removed", () => {
-			this.placeholders.get(path)?.delete(placeholder);
-		});
 	}
 
 	/**
@@ -103,7 +108,7 @@ export default class Binding {
 	 */
 	private bindAttribute(element: HTMLElement): void {
 		const attr = element.getAttributeNode("placeholders");
-		if (!attr) return;
+		if (!attr || !document.contains(element)) return;
 
 		//Parse predefined placeholder
 		if (attr.value != "") {
@@ -256,6 +261,9 @@ export default class Binding {
 		const placeholders = node.querySelectorAll("placeholder") as NodeListOf<
 			HTMLElement
 		>;
+		const attributes = node.querySelectorAll(
+			"[placeholders]"
+		) as NodeListOf<HTMLElement>;
 		const innerLoops = node.querySelectorAll("[iterate]") as NodeListOf<
 			HTMLElement
 		>;
@@ -270,6 +278,22 @@ export default class Binding {
 
 			this.bindElement(placeholder as HTMLElement);
 		});
+		//Parse inner attributes
+		attributes.forEach(attribute => {
+			let attr = attribute.getAttribute("placeholders");
+			if (!attr) return;
+			const pattern = (":" + through).replace(
+				/[.*+\-?^${}()|[\]\\]/g,
+				"\\$&"
+			);
+			attr = attr.replace(
+				new RegExp(pattern, "g"),
+				`:${through}.${index}`
+			);
+
+			attribute.setAttribute("placeholders", attr);
+			attribute.dispatchEvent(this.removedEvent);
+		});
 		//Parse inner loops
 		innerLoops.forEach(loop => {
 			let attr = loop?.getAttribute("iterate") || "";
@@ -281,6 +305,7 @@ export default class Binding {
 		element.parentNode?.insertBefore(node, element);
 
 		//Bind new elements
+		attributes.forEach(this.bindAttribute.bind(this));
 		innerLoops.forEach(this.bindLoop.bind(this));
 		placeholders.forEach(this.bindElement.bind(this));
 	}
@@ -322,7 +347,9 @@ export default class Binding {
 						const sibling = node.previousElementSibling;
 						if (node.getAttribute("iterate") == path) {
 							node.remove();
-							node.querySelectorAll("placeholder").forEach(x => {
+							node.querySelectorAll(
+								"template,placeholder,[placeholders]"
+							).forEach(x => {
 								x.dispatchEvent(this.removedEvent);
 							});
 						}

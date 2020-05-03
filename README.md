@@ -10,7 +10,7 @@ This is **base** branch! Check [**node**](https://github.com/Azarattum/TheFramew
   - Preconfigured **Prettier**
   - Event-driven
   - Strict naming and hierarchy
-  - Ligtweight
+  - Lightweight
 
 ### Usage:
 Clone this repo and start developing your project.

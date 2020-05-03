@@ -5,43 +5,46 @@ export default class Binding {
 	private container: HTMLElement;
 	private placeholders: Placeholders;
 	private binds: NodeListOf<HTMLInputElement> | null;
+	private loops: Map<string, Set<HTMLTemplateElement>>;
 	private data: any;
+	private removedEvent: Event;
 
 	/**
 	 * Creates binding on a container
 	 * @param container Managed container
 	 */
 	public constructor(container: HTMLElement) {
-		this.container = container;
+		this.removedEvent = new Event("removed");
 		this.placeholders = new Map();
-		this.data = {};
+		this.container = container;
+		this.loops = new Map();
 		this.binds = null;
+		this.data = {};
 	}
 
 	/**
 	 * Registers data binding for the container
 	 */
-	public bind(): Placeholders {
-		const map = this.placeholders;
+	public bind(): void {
 		const placeholders = this.container.querySelectorAll(
-			"placeholder,[placeholders]"
+			"placeholder"
+		) as NodeListOf<HTMLElement>;
+		const attribholders = this.container.querySelectorAll(
+			"[placeholders]"
+		) as NodeListOf<HTMLElement>;
+		const loops = this.container.querySelectorAll(
+			"[iterate]"
 		) as NodeListOf<HTMLElement>;
 		const binds = this.container.querySelectorAll(
-			`input[bind]`
+			"input[bind]"
 		) as NodeListOf<HTMLInputElement>;
 
-		//Interate through all placeholders
-		placeholders.forEach(placeholder => {
-			if (placeholder.tagName.toLowerCase() == "placeholder") {
-				this.bindElement(placeholder);
-			} else {
-				this.bindAttribute(placeholder);
-			}
-		});
-
+		placeholders.forEach(this.bindElement.bind(this));
+		attribholders.forEach(this.bindAttribute.bind(this));
 		binds.forEach(this.bindInput.bind(this));
+		loops.forEach(this.bindLoop.bind(this));
+
 		this.binds = binds;
-		return map;
 	}
 
 	/**
@@ -56,12 +59,14 @@ export default class Binding {
 		element: HTMLElement | Attr,
 		prefix: string = "",
 		postfix: string = ""
-	): void {
+	): IPlaceholder {
 		if (!this.placeholders.has(path)) {
-			this.placeholders.set(path, []);
+			this.placeholders.set(path, new Set());
 		}
 
-		this.placeholders.get(path)?.push({ prefix, postfix, element });
+		const placeholder = { prefix, postfix, element };
+		this.placeholders.get(path)?.add(placeholder);
+		return placeholder;
 	}
 
 	/**
@@ -70,9 +75,9 @@ export default class Binding {
 	 */
 	private bindElement(element: HTMLElement): void {
 		const path = element.attributes.item(0)?.name;
-		if (!path) return;
+		if (!path || !document.contains(element)) return;
 
-		this.register(path, element);
+		const placeholder = this.register(path, element);
 		element.innerHTML = "";
 
 		if ((element as any).observed) return;
@@ -86,6 +91,10 @@ export default class Binding {
 		});
 		observer.observe(element, { childList: true });
 		(element as any).observed = true;
+
+		element.addEventListener("removed", () => {
+			this.placeholders.get(path)?.delete(placeholder);
+		});
 	}
 
 	/**
@@ -205,6 +214,78 @@ export default class Binding {
 	}
 
 	/**
+	 * Binds elements which are use as loops
+	 * @param element Element with "iterate" attribute
+	 */
+	private bindLoop(element: HTMLElement): void {
+		const through = element.getAttributeNode("iterate");
+		if (!through || !document.contains(element)) return;
+		through.value = through.value.replace("data.", "");
+
+		const template = document.createElement("template");
+		template.content.appendChild(element.cloneNode(true));
+		element.parentNode?.replaceChild(template, element);
+
+		if (!this.loops.has(through.value)) {
+			this.loops.set(through.value, new Set());
+		}
+
+		this.loops.get(through.value)?.add(template);
+		template.addEventListener("removed", () => {
+			this.loops.get(through.value)?.delete(template);
+		});
+	}
+
+	/**
+	 * Creates a new loop element based on loop template
+	 * @param path Loop path
+	 * @param index Element index
+	 */
+	private createLoopElement(
+		element: HTMLTemplateElement,
+		index: number
+	): void {
+		const content = element.content.firstElementChild;
+		if (!content) return;
+		const through = content.getAttribute("iterate");
+		if (!through) return;
+
+		const node = content.cloneNode(true) as HTMLElement;
+
+		//Find new elements
+		const placeholders = node.querySelectorAll("placeholder") as NodeListOf<
+			HTMLElement
+		>;
+		const innerLoops = node.querySelectorAll("[iterate]") as NodeListOf<
+			HTMLElement
+		>;
+
+		//Parse inner placeholders
+		placeholders.forEach(placeholder => {
+			const attr = placeholder.attributes[0].name;
+			const newAttr = attr.replace(through, `${through}.${index}`);
+
+			placeholder.removeAttribute(attr);
+			placeholder.setAttribute(newAttr, "");
+
+			this.bindElement(placeholder as HTMLElement);
+		});
+		//Parse inner loops
+		innerLoops.forEach(loop => {
+			let attr = loop?.getAttribute("iterate") || "";
+			attr = attr.replace(through, `${through}.${index}`);
+			loop.setAttribute("iterate", attr);
+		});
+
+		//Insert loop element
+		element.parentNode?.insertBefore(node, element);
+
+		//Bind new elements
+		innerLoops.forEach(this.bindLoop.bind(this));
+		placeholders.forEach(this.bindElement.bind(this));
+	}
+
+	/**
 	 * Gets binded property
 	 * @param path Property's path
 	 */
@@ -228,8 +309,34 @@ export default class Binding {
 	 */
 	public set(path: string, value: any): boolean {
 		let changed = false;
+
+		//Update nested objects
 		if (typeof value == "object") {
+			//Process array
+			const loops = this.loops.get(path) || [];
+			if (Array.isArray(value)) {
+				//Remove unnecessary elements
+				for (const loop of loops) {
+					let node = loop.previousElementSibling;
+					while (node) {
+						const sibling = node.previousElementSibling;
+						if (node.getAttribute("iterate") == path) {
+							node.remove();
+							node.querySelectorAll("placeholder").forEach(x => {
+								x.dispatchEvent(this.removedEvent);
+							});
+						}
+						node = sibling;
+					}
+				}
+			}
 			for (const key in value) {
+				if (Array.isArray(value)) {
+					for (const loop of loops) {
+						this.createLoopElement(loop, +key);
+					}
+				}
+
 				changed = this.set(path + "." + key, value[key]) || changed;
 				const property = Object.getOwnPropertyDescriptor(value, key);
 				Object.defineProperty(value, key, {
@@ -297,7 +404,7 @@ export default class Binding {
 			const last = parts.pop();
 			if (last) {
 				for (const prop of parts) {
-					if (object[prop] === undefined) object[prop] = {};
+					if (typeof object[prop] !== "object") object[prop] = {};
 					object = object[prop];
 				}
 				object[last] = value.toString();
@@ -311,7 +418,7 @@ export default class Binding {
 /**
  * Placeholders type
  */
-export type Placeholders = Map<string, IPlaceholder[]>;
+export type Placeholders = Map<string, Set<IPlaceholder>>;
 
 /**
  * Placeholder interface

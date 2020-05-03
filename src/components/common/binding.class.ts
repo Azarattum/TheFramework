@@ -4,7 +4,7 @@
 export default class Binding {
 	private container: HTMLElement;
 	private placeholders: Placeholders;
-	private binds: NodeListOf<HTMLInputElement> | null;
+	private binds: Map<string, Set<HTMLInputElement>>;
 	private loops: Map<string, Set<HTMLTemplateElement>>;
 	private data: any;
 	private removedEvent: Event;
@@ -18,7 +18,7 @@ export default class Binding {
 		this.placeholders = new Map();
 		this.container = container;
 		this.loops = new Map();
-		this.binds = null;
+		this.binds = new Map();
 		this.data = {};
 	}
 
@@ -43,8 +43,6 @@ export default class Binding {
 		attribholders.forEach(this.bindAttribute.bind(this));
 		placeholders.forEach(this.bindElement.bind(this));
 		binds.forEach(this.bindInput.bind(this));
-
-		this.binds = binds;
 	}
 
 	/**
@@ -193,6 +191,7 @@ export default class Binding {
 	private bindInput(element: HTMLInputElement): void {
 		const attr = element.getAttributeNode("bind");
 		if (!attr?.value.startsWith("data.")) return;
+		if (!document.contains(element)) return;
 		const path = attr.value.slice(5);
 		attr.value = path;
 
@@ -217,6 +216,15 @@ export default class Binding {
 		}
 
 		handler();
+
+		if (!this.binds.has(path)) {
+			this.binds.set(path, new Set());
+		}
+
+		this.binds.get(path)?.add(element);
+		element.addEventListener("removed", () => {
+			this.binds.get(path)?.delete(element);
+		});
 	}
 
 	/**
@@ -265,8 +273,11 @@ export default class Binding {
 		const attributes = node.querySelectorAll(
 			"[placeholders]"
 		) as NodeListOf<HTMLElement>;
-		const innerLoops = node.querySelectorAll("[iterate]") as NodeListOf<
+		const loops = node.querySelectorAll("[iterate]") as NodeListOf<
 			HTMLElement
+		>;
+		const binds = node.querySelectorAll("[bind]") as NodeListOf<
+			HTMLInputElement
 		>;
 
 		//Parse inner placeholders
@@ -297,17 +308,24 @@ export default class Binding {
 			attribute.setAttribute("placeholders", attr);
 		});
 		//Parse inner loops
-		innerLoops.forEach(loop => {
-			let attr = loop?.getAttribute("iterate") || "";
+		loops.forEach(special => {
+			let attr = special.getAttribute("iterate") || "";
 			attr = attr.replace(through, `${through}.${index}`);
-			loop.setAttribute("iterate", attr);
+			special.setAttribute("iterate", attr);
+		});
+		//Parse inner binds
+		binds.forEach(special => {
+			let attr = special.getAttribute("bind") || "";
+			attr = attr.replace(through, `${through}.${index}`);
+			special.setAttribute("bind", attr);
 		});
 
 		//Insert loop element
 		element.parentNode?.insertBefore(node, element);
 
 		//Bind new elements
-		innerLoops.forEach(this.bindLoop.bind(this));
+		loops.forEach(this.bindLoop.bind(this));
+		binds.forEach(this.bindInput.bind(this));
 		attributes.forEach(this.bindAttribute.bind(this));
 		placeholders.forEach(this.bindElement.bind(this));
 		this.bindAttribute(node);
@@ -351,7 +369,7 @@ export default class Binding {
 						if (node.getAttribute("iterate") == path) {
 							node.remove();
 							node.querySelectorAll(
-								"template,placeholder,[placeholders]"
+								"template,placeholder,[placeholders],[bind]"
 							).forEach(x => {
 								x.dispatchEvent(this.removedEvent);
 							});
@@ -386,7 +404,7 @@ export default class Binding {
 		}
 
 		//Update binded elements
-		this.binds?.forEach(binding => {
+		this.binds.get(path)?.forEach(binding => {
 			if (binding.getAttribute("bind") === path) {
 				if (["radio", "checkbox"].includes(binding.type)) {
 					if (

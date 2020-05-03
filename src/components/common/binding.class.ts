@@ -281,6 +281,7 @@ export default class Binding {
 		});
 		//Parse inner attributes
 		attributes.forEach(attribute => {
+			//Use bind here to parse raw attribute data
 			this.bindAttribute(attribute);
 			let attr = attribute.getAttribute("placeholders");
 			if (!attr) return;
@@ -294,7 +295,6 @@ export default class Binding {
 			);
 
 			attribute.setAttribute("placeholders", attr);
-			attribute.dispatchEvent(this.removedEvent);
 		});
 		//Parse inner loops
 		innerLoops.forEach(loop => {

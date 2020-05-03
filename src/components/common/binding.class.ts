@@ -63,7 +63,7 @@ export default class Binding {
 			container = element.ownerElement as HTMLElement;
 		}
 
-		if (!document.contains(container)) return;
+		if (!this.container.contains(container)) return;
 
 		if (!this.placeholders.has(path)) {
 			this.placeholders.set(path, new Set());
@@ -83,7 +83,7 @@ export default class Binding {
 	 */
 	private bindElement(element: HTMLElement): void {
 		const path = element.attributes.item(0)?.name;
-		if (!path || !document.contains(element)) return;
+		if (!path || !this.container.contains(element)) return;
 
 		this.register(path, element);
 		element.innerHTML = "";
@@ -191,7 +191,7 @@ export default class Binding {
 	private bindInput(element: HTMLInputElement): void {
 		const attr = element.getAttributeNode("bind");
 		if (!attr?.value.startsWith("data.")) return;
-		if (!document.contains(element)) return;
+		if (!this.container.contains(element)) return;
 		const path = attr.value.slice(5);
 		attr.value = path;
 
@@ -204,7 +204,7 @@ export default class Binding {
 		};
 
 		if (element.type == "radio") {
-			const adjacents = document.querySelectorAll(
+			const adjacents = this.container.querySelectorAll(
 				`input[type="radio"][name="${element.name}"]`
 			);
 
@@ -233,7 +233,7 @@ export default class Binding {
 	 */
 	private bindLoop(element: HTMLElement): void {
 		const through = element.getAttributeNode("iterate");
-		if (!through || !document.contains(element)) return;
+		if (!through || !this.container.contains(element)) return;
 		through.value = through.value.replace("data.", "");
 
 		const template = document.createElement("template");
@@ -386,18 +386,6 @@ export default class Binding {
 				}
 
 				changed = this.set(path + "." + key, value[key]) || changed;
-				const property = Object.getOwnPropertyDescriptor(value, key);
-				Object.defineProperty(value, key, {
-					get: () => {
-						if (property?.get) property.get();
-						return this.get(path + "." + key);
-					},
-					set: val => {
-						if (property?.set) property.set(val);
-						this.set(path + "." + key, val);
-					},
-					configurable: true
-				});
 			}
 
 			return changed;

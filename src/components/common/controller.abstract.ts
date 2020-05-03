@@ -159,14 +159,13 @@ export default function Controller<T extends string>() {
 
 					return data;
 				},
-				set: (object: any, property: string, value: string) => {
-					object[property] = value;
-
+				set: (object: any, property: string, value: any) => {
 					if (!this.bindings) return false;
 					const path =
 						(object.__origin ? object.__origin + "." : "") +
 						property;
 
+					object[property] = value;
 					for (const binding of bindings) {
 						binding.set(path, value);
 					}

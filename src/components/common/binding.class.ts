@@ -39,8 +39,8 @@ export default class Binding {
 			"input[bind]"
 		) as NodeListOf<HTMLInputElement>;
 
-		attribholders.forEach(this.bindAttribute.bind(this));
 		loops.forEach(this.bindLoop.bind(this));
+		attribholders.forEach(this.bindAttribute.bind(this));
 		placeholders.forEach(this.bindElement.bind(this));
 		binds.forEach(this.bindInput.bind(this));
 
@@ -59,7 +59,14 @@ export default class Binding {
 		element: HTMLElement | Attr,
 		prefix: string = "",
 		postfix: string = ""
-	): IPlaceholder {
+	): void {
+		let container = element;
+		if (element instanceof Attr) {
+			container = element.ownerElement as HTMLElement;
+		}
+
+		if (!document.contains(container)) return;
+
 		if (!this.placeholders.has(path)) {
 			this.placeholders.set(path, new Set());
 		}
@@ -67,15 +74,9 @@ export default class Binding {
 		const placeholder = { prefix, postfix, element };
 		this.placeholders.get(path)?.add(placeholder);
 
-		let container = element;
-		if (element instanceof Attr) {
-			container = element.ownerElement as HTMLElement;
-		}
 		container.addEventListener("removed", () => {
 			this.placeholders.get(path)?.delete(placeholder);
 		});
-
-		return placeholder;
 	}
 
 	/**
@@ -108,7 +109,7 @@ export default class Binding {
 	 */
 	private bindAttribute(element: HTMLElement): void {
 		const attr = element.getAttributeNode("placeholders");
-		if (!attr || !document.contains(element)) return;
+		if (!attr) return;
 
 		//Parse predefined placeholder
 		if (attr.value != "") {
@@ -280,6 +281,7 @@ export default class Binding {
 		});
 		//Parse inner attributes
 		attributes.forEach(attribute => {
+			this.bindAttribute(attribute);
 			let attr = attribute.getAttribute("placeholders");
 			if (!attr) return;
 			const pattern = (":" + through).replace(
@@ -305,9 +307,10 @@ export default class Binding {
 		element.parentNode?.insertBefore(node, element);
 
 		//Bind new elements
-		attributes.forEach(this.bindAttribute.bind(this));
 		innerLoops.forEach(this.bindLoop.bind(this));
+		attributes.forEach(this.bindAttribute.bind(this));
 		placeholders.forEach(this.bindElement.bind(this));
+		this.bindAttribute(node);
 	}
 
 	/**

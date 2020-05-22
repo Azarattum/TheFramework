@@ -456,7 +456,7 @@ export default class Binding {
 		});
 
 		//Update data value
-		if (changed && value !== undefined) {
+		if (value !== undefined) {
 			let object: any = this.data;
 			const parts = path.split(".");
 			const last = parts.pop();

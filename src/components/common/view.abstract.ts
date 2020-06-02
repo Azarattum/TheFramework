@@ -6,6 +6,7 @@ export default abstract class View {
 	public readonly name: string;
 	protected template: Function | null;
 	private windowLoaded: boolean;
+	private rendered: boolean;
 
 	/**
 	 * Creates new view component
@@ -15,11 +16,12 @@ export default abstract class View {
 		this.name = name;
 		this.windowLoaded = document.readyState === "complete";
 		this.template = template;
+		this.rendered = false;
 
 		if (this.windowLoaded) return;
 		window.addEventListener("load", () => {
 			this.windowLoaded = true;
-			if (this.template) {
+			if (!this.rendered) {
 				this.render(this.template);
 			}
 		});
@@ -42,7 +44,7 @@ export default abstract class View {
 		args: Record<string, any> = {}
 	): void {
 		if (!this.windowLoaded) {
-			this.template = template;
+			this.template = template || this.template;
 			return;
 		}
 		if (!template) {
@@ -73,7 +75,8 @@ export default abstract class View {
 
 			x.innerHTML = template(xArgs);
 		});
-		this.template = null;
+		this.template = template;
+		this.rendered = true;
 	}
 
 	/**

@@ -3,17 +3,15 @@ import { IComponent } from "../common/manager.class";
 /**
  * Event handler for application components
  */
-export default class EnvetsHandler {
+export default class EventsHandler {
 	/**
 	 * Creates new envet handler for components
 	 * @param components Components to handle interactions with
 	 */
-	public constructor(components: IComponent[]) {
-		const component: { [name: string]: IComponent } = {};
-		components.forEach(x => (component[x.name] = x));
-
+	// eslint-disable-next-line @typescript-eslint/no-useless-constructor
+	public constructor(components: { [name: string]: IComponent[] }) {
 		//Defining all components
-		///this.template = component["Template"] as typeof Template;
+		///this.template = components["Template"][0] as typeof Example;
 	}
 
 	/**

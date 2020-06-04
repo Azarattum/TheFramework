@@ -1,50 +1,37 @@
-import Manager, { IComponent, ComponentArgs } from "../common/manager.class";
-import EnvetsHandler from "./events";
+import Manager, { IComponentType } from "../common/manager.class";
 
 /**
  * Main application class
  */
 export default class App {
-	private manger: Manager | null = null;
-	private events: EnvetsHandler | null = null;
+	/**Component manager */
+	private manager: Manager;
+
+	/**
+	 * Application constructor
+	 */
+	public constructor() {
+		const components: IComponentType[] = [
+			///Add your new components here
+		];
+
+		this.manager = new Manager(components);
+	}
 
 	/**
 	 * Initializes the app
 	 */
 	public async initialize(): Promise<void> {
-		const components: IComponent[] = [
-			///Add your new components here
-		];
-
-		this.manger = new Manager(components);
-		this.events = new EnvetsHandler(components);
-
-		const args = await this.getComponentArguments();
-		await this.events.registerEvents();
-		await this.manger.initialize(args);
-	}
-
-	/**
-	 * Initializes arguments for the manager
-	 */
-	private async getComponentArguments(): Promise<ComponentArgs> {
-		if (!this.manger) {
-			throw new Error("Initialize manager first!");
-		}
-
-		return {
-			///Return your components init args here
+		const config = {
+			///Your components' initialization configurations here
 		};
+		await this.manager.initialize(config);
 	}
 
 	/**
 	 * Closes the application
 	 */
 	public close(): void {
-		if (this.manger) {
-			this.manger.close();
-			this.manger = null;
-		}
-		this.events = null;
+		this.manager.close();
 	}
 }

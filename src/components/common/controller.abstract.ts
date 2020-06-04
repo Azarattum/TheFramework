@@ -1,4 +1,6 @@
 /* eslint @typescript-eslint/explicit-function-return-type: 0 */
+import { IComponent } from "./manager.class";
+import Exposer from "./exposer.class";
 
 /**
  * Event-driven controller generic type builder
@@ -7,19 +9,25 @@ export default function Controller<T extends string>() {
 	/**
 	 * Abstract of the controller class
 	 */
-	abstract class Controller {
+	abstract class Controller implements IComponent {
 		/**Component type */
-		public type: string = "Controllers";
+		public static type: string = "Controllers";
 		/**Controller name */
 		public name: string;
 		/**Callbacks storage */
 		private callbacks: { [type: string]: Function[] } = {};
+		/**Exposer object */
+		private exposer: Exposer;
+		/**Relation reference */
+		private relation: object | null;
 
 		/**
 		 * Creates controller class
 		 */
-		protected constructor(name: string) {
-			this.name = name;
+		public constructor(exposer: Exposer, relation?: object) {
+			this.name = this.constructor.name;
+			this.exposer = exposer;
+			this.relation = relation || null;
 		}
 
 		/**
@@ -59,20 +67,10 @@ export default function Controller<T extends string>() {
 		 * @param func Exposed function
 		 */
 		protected expose(name: string, func: Function | null = null): void {
-			if (!(globalThis as any)[this.name]) {
-				(globalThis as any)[this.name] = {};
-			}
+			const exposed =
+				func || ((this as any)[name] as Function).bind(this);
 
-			if (func) {
-				(globalThis as any)[this.name][name] = func;
-			} else {
-				if (typeof (this as any)[name] != "function") {
-					throw new Error("The function to expose not found!");
-				}
-				(globalThis as any)[this.name][name] = (...args: any[]) => {
-					((this as any)[name] as Function).call(this, ...args);
-				};
-			}
+			this.exposer.expose(this.name, name, exposed, this.relation);
 		}
 	}
 

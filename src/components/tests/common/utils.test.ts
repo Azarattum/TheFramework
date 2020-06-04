@@ -17,13 +17,18 @@ describe("Utils", () => {
 		console.warn = jest.fn(mock);
 		console.error = jest.fn(mock);
 
+		Utils.log(testLog);
 		Utils.log(testLog, LogType.INFO);
 		Utils.log(testLog, LogType.OK);
 		Utils.log(testLog, LogType.WARNING);
 		Utils.log(testLog, LogType.ERROR);
 		Utils.log(testLog, LogType.DIVIDER);
+		Utils.log(testLog + "!", LogType.DIVIDER);
+		expect(() => {
+			Utils.log(testLog, -1);
+		}).toThrow();
 
-		expect(console.log).toBeCalledTimes(3);
+		expect(console.log).toBeCalledTimes(5);
 		expect(console.warn).toBeCalledTimes(1);
 		expect(console.error).toBeCalledTimes(1);
 	});

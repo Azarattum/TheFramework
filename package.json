@@ -3,7 +3,8 @@
 		"release": "node_modules/.bin/webpack-cli -p --progress",
 		"build": "node_modules/.bin/webpack-cli -d --progress",
 		"watch": "node_modules/.bin/webpack-cli -d -w",
-		"test": "jest"
+		"test": "jest",
+		"coverage": "jest --coverage"
 	},
 	"dependencies": {},
 	"devDependencies": {

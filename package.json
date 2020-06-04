@@ -2,10 +2,12 @@
 	"scripts": {
 		"release": "node_modules/.bin/webpack-cli -p --progress",
 		"build": "node_modules/.bin/webpack-cli -d --progress",
-		"watch": "node_modules/.bin/webpack-cli -d -w"
+		"watch": "node_modules/.bin/webpack-cli -d -w",
+		"test": "jest"
 	},
 	"dependencies": {},
 	"devDependencies": {
+		"@types/jest": "^25.2.3",
 		"@typescript-eslint/eslint-plugin": "^2.24.0",
 		"@typescript-eslint/parser": "^2.24.0",
 		"eslint": "^6.8.0",
@@ -13,8 +15,10 @@
 		"eslint-plugin-node": "^11.0.0",
 		"eslint-plugin-promise": "^4.2.1",
 		"eslint-plugin-standard": "^4.0.1",
+		"jest": "^26.0.1",
 		"prettier": "^1.19.1",
 		"terser-webpack-plugin": "^2.3.5",
+		"ts-jest": "^26.1.0",
 		"ts-loader": "^6.2.1",
 		"typescript": "^3.8.3",
 		"webpack": "^4.42.0",

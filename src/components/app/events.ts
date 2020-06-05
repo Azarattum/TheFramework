@@ -1,9 +1,9 @@
-import { IComponent } from "../common/manager.class";
+import { IComponent, IEventsHandler } from "../common/manager.class";
 
 /**
  * Event handler for application components
  */
-export default class EventsHandler {
+export default class EventsHandler implements IEventsHandler {
 	/**
 	 * Creates new envet handler for components
 	 * @param components Components to handle interactions with

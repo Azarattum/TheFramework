@@ -1,6 +1,5 @@
 import Utils, { LogType } from "./utils.class";
 import Exposer from "./exposer.class";
-import EventsHandler from "../app/events";
 
 /**
  * Components manager
@@ -11,14 +10,17 @@ export default class Manager {
 	/**Managed components */
 	public readonly components: IComponent[];
 	/**Handler for componet events */
-	private events: EventsHandler;
+	private events: IEventsHandler | null;
 
 	/**
 	 * Creates a component manager
 	 * @param components Components to manage
 	 */
-	public constructor(components: IComponentType[]) {
-		const exposer = new Exposer(globalThis);
+	public constructor(
+		components: IComponentType[],
+		{ events, scope }: IManagerOptions = {}
+	) {
+		const exposer = new Exposer(scope || globalThis);
 		const typesOrder = ["Services", "Views", "Controllers"];
 		components.sort((a, b) =>
 			typesOrder.indexOf(a.type) >= typesOrder.indexOf(b.type) ? 1 : -1
@@ -43,7 +45,7 @@ export default class Manager {
 			named[x.name].push(x);
 		});
 
-		this.events = new EventsHandler(named);
+		this.events = events ? new events(named) : null;
 	}
 
 	/**
@@ -55,7 +57,9 @@ export default class Manager {
 
 		//Register events
 		try {
-			await this.events.registerEvents();
+			if (this.events) {
+				await this.events.registerEvents();
+			}
 		} catch (exception) {
 			//Log exception
 			if (this.logging) {
@@ -167,6 +171,30 @@ export default class Manager {
 			component => component.name.toLowerCase() == name.toLowerCase()
 		);
 	}
+}
+
+/**
+ * Manger options interface
+ */
+interface IManagerOptions {
+	events?: IEventsHandlerType;
+	scope?: Record<string, any>;
+}
+
+/**
+ * Interface of handler for component events constructor
+ */
+export interface IEventsHandlerType {
+	/**Creates event handler */
+	new (components: { [name: string]: IComponent[] }): IEventsHandler;
+}
+
+/**
+ * Interface of handler for component events
+ */
+export interface IEventsHandler {
+	/**Registers events */
+	registerEvents(): Promise<void>;
 }
 
 /**

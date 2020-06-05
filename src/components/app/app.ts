@@ -1,4 +1,5 @@
 import Manager, { IComponentType } from "../common/manager.class";
+import EventsHandler from "./events";
 
 /**
  * Main application class
@@ -15,7 +16,10 @@ export default class App {
 			///Add your new components here
 		];
 
-		this.manager = new Manager(components);
+		this.manager = new Manager(components, {
+			events: EventsHandler,
+			scope: globalThis
+		});
 	}
 
 	/**

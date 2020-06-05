@@ -8,6 +8,7 @@ describe("Manager", () => {
 		const create = jest.fn();
 		const close = jest.fn();
 		const initialize = jest.fn();
+		const register = jest.fn();
 		class MockComponent {
 			public static type = "Controllers";
 			public name = "Test";
@@ -21,9 +22,16 @@ describe("Manager", () => {
 				close();
 			}
 		}
+		class MockEvents {
+			public registerEvents: () => Promise<void>;
+
+			public constructor(...args: any[]) {
+				this.registerEvents = register();
+			}
+		}
 
 		const components: IComponentType[] = [MockComponent];
-		const manager = new Manager(components);
+		const manager = new Manager(components, { events: MockEvents });
 		manager.logging = false;
 
 		expect(create).toBeCalledTimes(1);
@@ -36,6 +44,7 @@ describe("Manager", () => {
 
 		manager.initialize().then(() => {
 			expect(initialize).toBeCalledTimes(1);
+			expect(register).toBeCalledTimes(1);
 		});
 
 		manager.close();

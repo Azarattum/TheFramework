@@ -98,4 +98,24 @@ describe("Exposer", () => {
 			expect(mocks[i]).toBeCalledTimes(2);
 		}
 	});
+
+	/**
+	 * Test expose with a set of arguments
+	 */
+	it("exposeWithArguments", () => {
+		const scope: any = {};
+		const exposer = new Exposer(scope);
+
+		const module = "Test";
+		const name = "mock";
+		const values = [1, 742, 1337, 42];
+
+		exposer.expose(module, name, (...args: any[]) => {
+			expect(args).toStrictEqual(values);
+			return values[0];
+		});
+
+		const result = scope[module][name](...values);
+		expect(result).toBe(values[0]);
+	});
 });

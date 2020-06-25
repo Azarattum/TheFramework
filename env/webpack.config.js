@@ -12,6 +12,22 @@ module.exports = {
 	module: {
 		rules: [
 			{
+				test: /service\.ts$/,
+				use: [
+					{
+						loader: "./env/service.loader.js"
+					},
+					{
+						loader: "comlink-loader",
+						options: {
+							singleton: true
+						}
+					}
+				],
+				include: Path.resolve(__dirname, "../src"),
+				exclude: /node_modules/
+			},
+			{
 				test: /\.ts$/,
 				use: [
 					{
@@ -22,7 +38,7 @@ module.exports = {
 						}
 					}
 				],
-				include: Path.resolve(__dirname, "./src"),
+				include: Path.resolve(__dirname, "../src"),
 				exclude: /node_modules/
 			}
 		]
@@ -33,7 +49,7 @@ module.exports = {
 	output: {
 		filename: "bundle.js",
 		pathinfo: false,
-		path: Path.resolve(__dirname, "./dist")
+		path: Path.resolve(__dirname, "../dist")
 	},
 	optimization: {
 		concatenateModules: false,

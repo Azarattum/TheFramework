@@ -14,38 +14,21 @@ export default function Service<T extends string>() {
 		public static type: string = "Services";
 		/**Service name */
 		public name: string;
-		/**Callbacks storage */
-		private callbacks: { [type: string]: Function[] } = {};
-		/**Exposer object */
-		private exposer: Exposer;
-		/**Relation reference */
-		private relation: object | null;
+		/**Event resolution callback */
+		private resolve: Function | null;
+		/**Events queue */
+		private events: { type: string; args: any[] }[];
+		/**Map to all exposed functions */
+		private exposed: Map<string, Function>;
 
 		/**
 		 * Creates service class
 		 */
-		public constructor(exposer: Exposer, relation?: object) {
+		public constructor(exposer: Exposer) {
 			this.name = this.constructor.name;
-			this.exposer = exposer;
-			this.relation = relation || null;
-		}
-
-		/**
-		 * Closes the service
-		 */
-		public close(): void {
-			//Close the service
-			this.callbacks = {};
-		}
-
-		/**
-		 * Listens to a specified event in the service
-		 * @param type Event type
-		 * @param callback Callback function
-		 */
-		public on(type: T, callback: Function): void {
-			if (!(type in this.callbacks)) this.callbacks[type] = [];
-			this.callbacks[type].push(callback);
+			this.exposed = new Map();
+			this.resolve = null;
+			this.events = [];
 		}
 
 		/**
@@ -54,9 +37,40 @@ export default function Service<T extends string>() {
 		 * @param args Arguments to pass to callbacks
 		 */
 		protected emit(type: T, ...args: any[]): void {
-			if (this.callbacks[type]) {
-				this.callbacks[type].forEach(x => x.call(x, ...args));
+			if (this.resolve) {
+				this.resolve({ type, args });
+				this.resolve = null;
+				return;
 			}
+
+			this.events.push({ type, args });
+		}
+
+		/**
+		 * Returns a promise of the next emitted event.
+		 * Used by proxy wrapper, should not be used anywhere else!
+		 */
+		private async listen(): Promise<any> {
+			const event = new Promise(resolve => {
+				if (this.events.length) {
+					resolve(this.events.shift());
+					return;
+				}
+				this.resolve = resolve;
+			});
+
+			return event;
+		}
+
+		/**
+		 * Calls function by its id from exposed list.
+		 * Used by proxy wrapper, should not be used anywhere else!
+		 * @param id Exposed function unique id
+		 * @param args Call arguments
+		 */
+		private async call(id: string, ...args: any[]): Promise<any> {
+			const func = this.exposed.get(id);
+			if (func) return func(...args);
 		}
 
 		/**
@@ -69,8 +83,38 @@ export default function Service<T extends string>() {
 		protected expose(name: string, func: Function | null = null): void {
 			const exposed =
 				func || ((this as any)[name] as Function).bind(this);
+			const id =
+				name +
+				"_" +
+				new Array(4)
+					.fill(0)
+					.map(() =>
+						Math.floor(
+							Math.random() * Number.MAX_SAFE_INTEGER
+						).toString(16)
+					)
+					.join("-");
 
-			this.exposer.expose(this.name, name, exposed, this.relation);
+			this.exposed.set(id, exposed);
+			this.emit("__exposed" as any, name, id);
+		}
+
+		/**
+		 * Listens to a specified event in the service
+		 * @param type Event type
+		 * @param callback Callback function
+		 */
+		public on(type: T, callback: Function): void {
+			//Functionality will be taken by wrapper
+		}
+
+		/**
+		 * Closes the service
+		 */
+		public async close() {
+			this.exposed.clear();
+			this.resolve = null;
+			this.events = [];
 		}
 	}
 

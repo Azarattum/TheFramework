@@ -10,7 +10,7 @@ export default class Manager {
 	/**Managed components */
 	public readonly components: IComponent[];
 	/**Handler for componet events */
-	private events: IEventsHandler | null;
+	private events: IEventsHandlerType | null;
 
 	/**
 	 * Creates a component manager
@@ -37,15 +37,7 @@ export default class Manager {
 			}
 		}
 
-		const named: { [name: string]: IComponent[] } = {};
-		components.forEach(x => {
-			if (!named[x.name]) {
-				named[x.name] = [];
-			}
-			named[x.name].push(x);
-		});
-
-		this.events = events ? new events(named) : null;
+		this.events = events || null;
 	}
 
 	/**
@@ -55,10 +47,27 @@ export default class Manager {
 		let exceptions = 0;
 		if (this.logging) Utils.log("Initializtion started...");
 
+		//Load promise components
+		for (const i in this.components) {
+			if (!(this.components[i] instanceof Promise)) continue;
+
+			const loaded = await this.components[i];
+			this.components[i] = loaded;
+		}
+
 		//Register events
 		try {
 			if (this.events) {
-				await this.events.registerEvents();
+				const named: { [name: string]: IComponent[] } = {};
+				this.components.forEach(x => {
+					if (!named[x.name]) {
+						named[x.name] = [];
+					}
+					named[x.name].push(x);
+				});
+
+				const events = new this.events(named);
+				await events.registerEvents();
 			}
 		} catch (exception) {
 			//Log exception

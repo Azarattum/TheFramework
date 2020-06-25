@@ -51,14 +51,14 @@ export default class Exposer {
 		const bounds = this.relations;
 		const methods = this.records.get(module)?.get(name);
 		const self = this.scope[module];
-		self[name] = function(): any | any[] {
+		self[name] = function(...args: any[]): any | any[] {
 			if (!methods || !methods.length) return;
 
 			const results = [];
 			for (const method of methods) {
 				const relation = bounds.get(method);
 				if (!this || this == self || !relation || relation === this) {
-					results.push(method());
+					results.push(method(...args));
 				}
 			}
 

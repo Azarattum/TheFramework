@@ -32,4 +32,21 @@ describe("Utils", () => {
 		expect(console.warn).toBeCalledTimes(1);
 		expect(console.error).toBeCalledTimes(1);
 	});
+
+	/**
+	 * Test utils format function
+	 */
+	it("format", () => {
+		let string = "The simplest {0}";
+		string = Utils.format(string, "string");
+		expect(string).toBe("The simplest string");
+
+		string = "This {1} custom {0}";
+		string = Utils.format(string, "order", "is");
+		expect(string).toBe("This is custom order");
+
+		string = "Double holder: {0}_{0}";
+		string = Utils.format(string, "•");
+		expect(string).toBe("Double holder: •_•");
+	});
 });

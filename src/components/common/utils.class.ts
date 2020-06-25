@@ -59,6 +59,21 @@ export default class Utils {
 				throw new TypeError("Unknown log type!");
 		}
 	}
+
+	/**
+	 * Formates string using placeholders.
+	 * Example: `hello {0}!` to `hello world!`, where `world` is your argument
+	 * @param string Format string
+	 * @param args Values to be inserted
+	 */
+	public static format(string: string, ...args: string[]): string {
+		for (const i in args) {
+			const pattern = new RegExp(`[{]${i}[}]`, "g");
+			string = string.replace(pattern, args[i]);
+		}
+
+		return string;
+	}
 }
 
 /**

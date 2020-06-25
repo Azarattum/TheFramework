@@ -1,6 +1,5 @@
 /* eslint @typescript-eslint/explicit-function-return-type: 0 */
 import { IComponent } from "./manager.class";
-import Exposer from "./exposer.class";
 
 /**
  * Event-driven service generic type builder
@@ -24,7 +23,7 @@ export default function Service<T extends string>() {
 		/**
 		 * Creates service class
 		 */
-		public constructor(exposer: Exposer) {
+		public constructor() {
 			this.name = this.constructor.name;
 			this.exposed = new Map();
 			this.resolve = null;

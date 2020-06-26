@@ -17,6 +17,7 @@
 		"eslint-plugin-node": "^11.0.0",
 		"eslint-plugin-promise": "^4.2.1",
 		"eslint-plugin-standard": "^4.0.1",
+		"eslint-plugin-the-framework": "file:env",
 		"jest": "^26.0.1",
 		"prettier": "^1.19.1",
 		"terser-webpack-plugin": "^2.3.5",

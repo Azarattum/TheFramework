@@ -4,7 +4,7 @@ describe("Manager", () => {
 	/**
 	 * Test manager with single component
 	 */
-	it("singleComponent", () => {
+	it("singleComponent", async () => {
 		const create = jest.fn();
 		const close = jest.fn();
 		const initialize = jest.fn();
@@ -42,7 +42,7 @@ describe("Manager", () => {
 		expect(component).toHaveLength(1);
 		expect(component[0]).toBeInstanceOf(MockComponent);
 
-		manager.initialize().then(() => {
+		await manager.initialize().then(() => {
 			expect(initialize).toBeCalledTimes(1);
 			expect(register).toBeCalledTimes(1);
 		});
@@ -55,7 +55,7 @@ describe("Manager", () => {
 	 * Test manager with multiple components
 	 * of different types
 	 */
-	it("multipleComponents", () => {
+	it("multipleComponents", async () => {
 		const create = jest.fn();
 		const close = jest.fn();
 		const initialize = jest.fn();
@@ -128,7 +128,7 @@ describe("Manager", () => {
 		expect(component).toHaveLength(1);
 		expect(component[0]).toBeInstanceOf(MockViewComponent);
 
-		manager.initialize().then(() => {
+		await manager.initialize().then(() => {
 			expect(initialize).toBeCalledTimes(3);
 		});
 
@@ -140,7 +140,7 @@ describe("Manager", () => {
 	 * Test manager with duplicate components
 	 * with multiple relations of the same type
 	 */
-	it("relationalComponents", () => {
+	it("relationalComponents", async () => {
 		const create = jest.fn();
 		const close = jest.fn();
 		const initialize = jest.fn();
@@ -175,7 +175,7 @@ describe("Manager", () => {
 			expect(component[i]).toBeInstanceOf(MockRelationalComponent);
 		}
 
-		manager.initialize().then(() => {
+		await manager.initialize().then(() => {
 			expect(initialize).toBeCalledTimes(4);
 		});
 

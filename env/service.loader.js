@@ -101,6 +101,6 @@ class ServiceWrapper {
 
 	close() {
 		this.callbacks = {};
-		this.original.close();
+		return this.original.close();
 	}
 }

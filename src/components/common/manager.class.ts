@@ -7,6 +7,8 @@ import Exposer from "./exposer.class";
 export default class Manager {
 	/**Whether to log out initialization status */
 	public logging: boolean = true;
+	/**Whether manager is initialized now */
+	public isInitialized = false;
 	/**Managed components */
 	public readonly components: IComponent[];
 	/**Handler for componet events */
@@ -114,6 +116,8 @@ export default class Manager {
 			}
 		}
 
+		this.isInitialized = true;
+
 		//Log result
 		if (!this.logging) return;
 		Utils.log("", LogType.DIVIDER);
@@ -131,16 +135,18 @@ export default class Manager {
 	 * Closes all managed components
 	 */
 	public close(): void {
+		if (!this.isInitialized) return;
 		if (this.logging) {
 			Utils.log("", LogType.DIVIDER);
 			Utils.log("Closing all components...");
 		}
 
 		let exceptions = 0;
+		const promises = [];
 		for (const component of this.components) {
 			try {
 				if (component.close) {
-					component.close();
+					promises.push(component.close());
 				}
 
 				if (this.logging) {
@@ -158,17 +164,21 @@ export default class Manager {
 			}
 		}
 
+		this.isInitialized = false;
+
 		//Log result
 		if (!this.logging) return;
 		Utils.log("", LogType.DIVIDER);
-		if (exceptions) {
-			Utils.log(
-				`Stopped with ${exceptions} exceptions!`,
-				LogType.WARNING
-			);
-		} else {
-			Utils.log("Successfyly stopped!", LogType.OK);
-		}
+		Promise.all(promises).then(() => {
+			if (exceptions) {
+				Utils.log(
+					`Stopped with ${exceptions} exceptions!`,
+					LogType.WARNING
+				);
+			} else {
+				Utils.log("Successfyly stopped!", LogType.OK);
+			}
+		});
 	}
 
 	/**

@@ -12,7 +12,7 @@ const handler = {
 			property == "toJSON" ||
 			property == "toString"
 		) {
-			return () => 
+			return () =>
 				`<placeholder ${object._}><!--"placeholders __postfix_${object._}="--></placeholder>`;
 		}
 		const newObject = {
@@ -73,13 +73,13 @@ module.exports = {
 			{
 				test: /\.pug$/,
 				use: ["pug-loader"],
-				include: Path.resolve(__dirname, "./src"),
+				include: Path.resolve(__dirname, "../src"),
 				exclude: /node_modules/
 			},
 			{
 				test: /\.scss$/,
 				use: ["style-loader", "css-loader", "sass-loader"],
-				include: Path.resolve(__dirname, "./src"),
+				include: Path.resolve(__dirname, "../src"),
 				exclude: /node_modules/
 			},
 			{

@@ -13,10 +13,10 @@ module.exports = source => {
 				.replace(/\\/g, "\\\\")}!worker-loader`
 		)
 		.replace(
-			"comlink-worker-loader.js!",
-			`comlink-worker-loader.js!${path
+			"!worker-loader?{}",
+			`!worker-loader?{}!${path
 				.resolve(__dirname, "adapter.loader.js")
-				.replace(/\\/g, "\\\\")}!`
+				.replace(/\\/g, "\\\\")}`
 		)
 		.replace(
 			"module.exports = require('comlink')",

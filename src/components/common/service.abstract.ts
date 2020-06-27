@@ -123,6 +123,7 @@ export default function Service<T extends string>() {
 				for (const port of (self as any).ports) {
 					port.close();
 				}
+				(self as any).ports = [];
 			}
 		}
 	}

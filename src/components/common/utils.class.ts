@@ -74,6 +74,18 @@ export default class Utils {
 
 		return string;
 	}
+
+	/**
+	 * Randomly generates universal unique id
+	 */
+	public static generateID(): string {
+		return new Array(4)
+			.fill(0)
+			.map(() =>
+				Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(16)
+			)
+			.join("-");
+	}
 }
 
 /**

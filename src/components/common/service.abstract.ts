@@ -1,5 +1,6 @@
 /* eslint @typescript-eslint/explicit-function-return-type: 0 */
 import { IComponent } from "./manager.class";
+import Utils from "./utils.class";
 
 /**
  * Event-driven service generic type builder
@@ -11,8 +12,10 @@ export default function Service<T extends string>() {
 	abstract class Service implements IComponent {
 		/**Component type */
 		public static type: string = "Services";
+		/**Service universal unique id */
+		public readonly uuid: string;
 		/**Service name */
-		public name: string;
+		public readonly name: string;
 		/**Event resolution callback */
 		private resolve: Function | null;
 		/**Events queue */
@@ -24,6 +27,7 @@ export default function Service<T extends string>() {
 		 * Creates service class
 		 */
 		public constructor() {
+			this.uuid = Utils.generateID();
 			this.name = this.constructor.name;
 			this.exposed = new Map();
 			this.resolve = null;

@@ -1,6 +1,7 @@
 /* eslint @typescript-eslint/explicit-function-return-type: 0 */
 import { IComponent } from "./manager.class";
 import Exposer from "./exposer.class";
+import Utils from "./utils.class";
 
 /**
  * Event-driven controller generic type builder
@@ -12,8 +13,10 @@ export default function Controller<T extends string>() {
 	abstract class Controller implements IComponent {
 		/**Component type */
 		public static type: string = "Controllers";
+		/**Controller universal unique id */
+		public readonly uuid: string;
 		/**Controller name */
-		public name: string;
+		public readonly name: string;
 		/**Callbacks storage */
 		private callbacks: { [type: string]: Function[] } = {};
 		/**Exposer object */
@@ -25,6 +28,7 @@ export default function Controller<T extends string>() {
 		 * Creates controller class
 		 */
 		public constructor(exposer: Exposer, relation?: object) {
+			this.uuid = Utils.generateID();
 			this.name = this.constructor.name;
 			this.exposer = exposer;
 			this.relation = relation || null;

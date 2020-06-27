@@ -167,6 +167,20 @@ export default function Controller<T extends string>() {
 	return Controller;
 }
 
+/**
+ * Sets property to element by selector within the container
+ * @param selector HTML element selector
+ */
+export function element(selector: string): Function {
+	return function(target: any, key: string): void {
+		const original = target.initialize;
+		target.initialize = function(...args: any[]): any {
+			this[key] = this.container.querySelector(selector);
+			return original.bind(this)(...args);
+		};
+	};
+}
+
 if (typeof globalThis === "undefined") {
 	(window as any).globalThis = window;
 }

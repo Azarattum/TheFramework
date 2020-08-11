@@ -24,8 +24,8 @@ export default class Manager {
 	) {
 		const exposer = new Exposer(scope || globalThis);
 		const typesOrder = ["Services", "Views", "Controllers"];
-		components.sort((a, b) =>
-			typesOrder.indexOf(a.type) >= typesOrder.indexOf(b.type) ? 1 : -1
+		components.sort(
+			(a, b) => typesOrder.indexOf(a.type) - typesOrder.indexOf(b.type)
 		);
 
 		this.components = [];

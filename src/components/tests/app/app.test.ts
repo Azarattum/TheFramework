@@ -6,6 +6,7 @@ describe("App", () => {
 	 */
 	it("run", () => {
 		console.log = jest.fn();
+		console.warn = jest.fn();
 		console.error = jest.fn();
 		const init = (): void => {
 			const app = new App();

@@ -46,7 +46,7 @@ export default function Controller<T extends string>() {
 		public static get relations(): object[] {
 			return Array.from(
 				document.querySelectorAll(
-					`[controller=${(this as any).name.toLowerCase()}]`
+					`[controller=${this.name.toLowerCase()}]`
 				)
 			);
 		}

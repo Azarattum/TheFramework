@@ -1,13 +1,6 @@
-import "./example.scss";
-import Template from "./example.pug";
 import View from "../../../common/view.abstract";
+import Template from "./example.pug";
+import "./example.scss";
 
-/**
- * Example view
- */
-export default class Example extends View {
-	public constructor() {
-		super(Example.name);
-		this.template = Template;
-	}
-}
+/**Example view */
+export default class Example extends View(Template) {}

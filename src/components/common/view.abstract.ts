@@ -1,145 +1,168 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
+import { IComponent } from "./manager.class";
+import Utils, { LogType } from "./utils.class";
+
 /**
- * Represents a view component
+ * View class type generator
  */
-export default abstract class View {
-	public type = "Views";
-	public readonly name: string;
-	protected template: Function | null;
-	private windowLoaded: boolean;
-	private rendered: boolean;
-
+export default function View(template: Function) {
 	/**
-	 * Creates new view component
-	 * @param name The name of view
+	 * Abstract class of a view component
 	 */
-	public constructor(name: string, template: Function | null = null) {
-		this.name = name;
-		this.windowLoaded = document.readyState === "complete";
-		this.template = template;
-		this.rendered = false;
+	abstract class View implements IComponent {
+		/**Component type */
+		public static type: string = "Views";
+		/**View name */
+		public readonly name: string;
+		/**View universal unique id */
+		public readonly uuid: string;
+		/**The container associated with current view */
+		protected readonly container: HTMLElement | null;
+		/**HTML template function */
+		protected template: Function;
+		/**Whether the view is rendered now */
+		private rendered: boolean;
 
-		if (this.windowLoaded) return;
-		window.addEventListener("load", () => {
-			this.windowLoaded = true;
-			if (!this.rendered) {
-				this.render(this.template);
+		/**
+		 * Creates new view component
+		 * @param name The name of view
+		 */
+		public constructor(exposer: any, relation?: object) {
+			this.uuid = Utils.generateID();
+			this.name = this.constructor.name;
+			this.template = template;
+			this.rendered = false;
+
+			if (relation instanceof HTMLElement) {
+				this.container = relation;
+			} else {
+				if (!relation) {
+					Utils.log(
+						`Container for view ${this.name} not found!`,
+						LogType.WARNING
+					);
+				} else {
+					Utils.log(
+						`${relation} is not a valid container for view ${this.name}!`,
+						LogType.ERROR
+					);
+				}
+				this.container = null;
 			}
-		});
-	}
 
-	/**
-	 * Initializes view component by rendering it
-	 * @param args View render arguments
-	 */
-	public async initialize(args: {}): Promise<void> {
-		this.render(null, args);
-	}
-
-	/**
-	 * Renders the content to the view's container
-	 * @param content View content
-	 */
-	public render(
-		template: Function | null = null,
-		args: Record<string, any> = {}
-	): void {
-		if (!this.windowLoaded) {
-			this.template = template || this.template;
-			return;
-		}
-		if (!template) {
-			template = this.template;
-		}
-		if (!args) {
-			args = {};
+			this.render();
 		}
 
-		this.container.forEach(x => {
-			if (!template) return;
+		/**
+		 * All relational objects (html elements) displayed by this view
+		 */
+		public static get relations(): object[] {
+			return Array.from(
+				document.querySelectorAll(`[view=${this.name.toLowerCase()}]`)
+			);
+		}
 
-			//Wrap functional arguments
-			const xArgs = {};
-			for (const key in args) {
-				if (Object.prototype.hasOwnProperty.call(args, key)) {
-					const value = (args as any)[key];
-					if (typeof value == "function") {
-						(xArgs as any)[key] = (...args: any[]): any => {
-							return value(x, ...args);
-						};
-					} else {
-						(xArgs as any)[key] = value;
+		/**
+		 * Initializes view component by rendering it
+		 * @param args View render arguments
+		 */
+		public async initialize(args?: Record<string, any>): Promise<void> {
+			if (!this.rendered || args) {
+				this.render(args);
+			}
+		}
+
+		/**
+		 * Renders the content to the view's container
+		 * @param content View content
+		 */
+		public render(args: Record<string, any> = {}): void {
+			if (!this.container) return;
+			//Clone object
+			args = Object.assign({}, args);
+
+			//Binding argument functions to the container
+			const bind = (object: Record<string, any>) => {
+				for (const key in object) {
+					if (typeof object[key] == "function") {
+						object[key] = object[key].bind(this.container);
+					} else if (typeof object[key] == "object") {
+						bind(object[key]);
 					}
 				}
-			}
-			(xArgs as any)["data"] = this.data;
+			};
 
-			x.innerHTML = template(xArgs);
-		});
-		this.template = template;
-		this.rendered = true;
-	}
-
-	/**
-	 * Toggles visibility of view's container
-	 * @param visible Container visibility
-	 */
-	public toggle(visible: boolean | null = null): void {
-		if (visible == null) {
-			if (this.container[0].style.display == "none") {
-				visible = true;
-			} else {
-				visible = false;
+			//Expose extra data
+			bind(args);
+			args["data"] = this.data;
+			args["uuid"] = this.uuid;
+			for (const key in this.container.dataset) {
+				args[key] = this.container.dataset[key];
 			}
+
+			//Render to the container
+			this.container.innerHTML = template(args);
+			this.rendered = true;
 		}
 
-		if (visible) {
-			this.container.forEach(x => {
-				x.style.display = "block";
-			});
-		} else {
-			this.container.forEach(x => {
-				x.style.display = "none";
-			});
-		}
-	}
+		/**
+		 * Toggles visibility of view's container
+		 * @param visible Container visibility
+		 */
+		public toggle(visible: boolean | null = null): void {
+			if (!this.container) return;
 
-	/**
-	 * Data proxy for placeholders
-	 */
-	private get data(): Record<string, string> {
-		const handler = {
-			get: (object: { _: string }, property: any): any => {
-				if (
-					property == Symbol.toPrimitive ||
-					property == "toJSON" ||
-					property == "toString"
-				) {
-					return (): string =>
-						`<placeholder ${object._}><!--"placeholders __postfix_${object._}="--></placeholder>`;
+			if (visible == null) {
+				if (this.container.style.display === "none") {
+					visible = true;
+				} else {
+					visible = false;
 				}
-
-				const newObject = {
-					_: (object._ ? object._ + "." : "") + property
-				};
-				return new Proxy(newObject, handler);
 			}
-		};
 
-		return new Proxy({ _: "" }, handler);
-	}
-
-	/**
-	 * The container associated with current view
-	 */
-	private get container(): NodeListOf<HTMLElement> {
-		const container = document.querySelectorAll(
-			`[view=${this.name.toLowerCase()}]`
-		);
-
-		if (!container) {
-			throw new Error(`Container ${this.name} not found!`);
+			if (visible) {
+				this.container.style.display =
+					(this.container as any).display || "block";
+			} else {
+				(this.container as any).display = this.container.style.display;
+				this.container.style.display = "none";
+			}
 		}
 
-		return container as NodeListOf<HTMLElement>;
+		/**
+		 * Clears the container on component close
+		 */
+		public close(): void {
+			if (!this.container) return;
+			this.container.innerHTML = "";
+		}
+
+		/**
+		 * Data proxy for placeholders
+		 */
+		private get data(): Record<string, string> {
+			const handler = {
+				get: (object: { _: string }, property: any): any => {
+					if (
+						property == Symbol.toPrimitive ||
+						property == "toJSON" ||
+						property == "toString"
+					) {
+						return (): string =>
+							`<placeholder ${object._}><!--"placeholders __postfix_${object._}="--></placeholder>`;
+					}
+
+					const newObject = {
+						_: (object._ ? object._ + "." : "") + property
+					};
+					return new Proxy(newObject, handler);
+				}
+			};
+
+			return new Proxy({ _: "" }, handler);
+		}
 	}
+
+	//Return controller with specific typings
+	return View;
 }

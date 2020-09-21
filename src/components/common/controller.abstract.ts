@@ -2,9 +2,7 @@
 import { IComponent } from "./manager.class";
 import Exposer from "./exposer.class";
 import Utils from "./utils.class";
-
 import Binding from "./binding.class";
-import Utils from "./utils.class";
 
 /**
  * Event-driven controller generic type builder
@@ -22,10 +20,14 @@ export default function Controller<T extends string>() {
 		public readonly name: string;
 		/**Callbacks storage */
 		private callbacks: { [type: string]: Function[] } = {};
+		/**Whether to escape html in data binding */
+		public safe: boolean = true;
 		/**Exposer object */
 		private exposer: Exposer;
 		/**Relation reference */
 		private relation: object | null;
+		/**Placeholders list */
+		private binding: Binding | null;
 
 		/**
 		 * Creates controller class
@@ -35,25 +37,26 @@ export default function Controller<T extends string>() {
 			this.name = this.constructor.name;
 			this.exposer = exposer;
 			this.relation = relation || null;
+			this.binding = null;
+		}
+
+		/**
+		 * All relational objects (html elements) for this controller class
+		 */
+		public static get relations(): object[] {
+			return Array.from(
+				document.querySelectorAll(
+					`[controller=${(this as any).name.toLowerCase()}]`
+				)
+			);
 		}
 
 		/**
 		 * Initializes data binding for the controller
 		 */
 		protected bind(): void {
-			this.bindings = new Map();
-
-			const containers = Array.from(
-				document.querySelectorAll(
-					`[controller=${(this as any).name.toLowerCase()}]`
-				)
-			).reverse() as HTMLElement[];
-
-			for (const container of containers) {
-				const binding = new Binding(container);
-				binding.bind();
-				this.bindings.set(container, binding);
-			}
+			this.binding = new Binding(this.container);
+			this.binding.bind();
 		}
 
 		/**
@@ -108,38 +111,19 @@ export default function Controller<T extends string>() {
 		 * The container associated with current controller
 		 */
 		protected get container(): HTMLElement {
-			let container = this.sender
-				? this.sender.closest(
-						`[controller=${(this as any).name.toLowerCase()}]`
-				  )
-				: null;
-			container =
-				container ||
-				document.querySelector(
-					`[controller=${(this as any).name.toLowerCase()}]`
-				);
-
-			if (!container) {
-				throw new Error(`Container ${(this as any).name} not found!`);
+			if (this.relation instanceof HTMLElement) {
+				return this.relation;
 			}
 
-			return container as HTMLElement;
+			throw new Error(`Container ${this.name} not found!`);
 		}
 
 		/**
 		 * Binded to the controller data
 		 */
 		protected get data(): Record<string, any> {
-			if (!this.bindings) {
+			if (!this.binding) {
 				throw new Error("Use this.bind() to bind your data first!");
-			}
-
-			let bindings: Binding[] = [];
-			if (this.sender) {
-				const binding = this.bindings.get(this.container);
-				if (binding) bindings = [binding];
-			} else {
-				bindings = Array.from(this.bindings.values());
 			}
 
 			const handler = {
@@ -160,24 +144,20 @@ export default function Controller<T extends string>() {
 					return data;
 				},
 				set: (object: any, property: string, value: any) => {
-					if (!this.bindings) return false;
+					if (!this.binding) return false;
 					const path =
 						(object.__origin ? object.__origin + "." : "") +
 						property;
 
 					object[property] = value;
-					for (const binding of bindings) {
-						binding.set(path, value, !this.safe);
-					}
+					this.binding.set(path, value, !this.safe);
 
 					return true;
 				}
 			};
 
-			const data: any = {};
-			for (const binding of bindings) {
-				Utils.mergeObjects(data, binding.get());
-			}
+			//Assign root object to data
+			const data: any = this.binding.get();
 			data.__origin = "";
 			return new Proxy(data, handler);
 		}
@@ -198,7 +178,8 @@ if (typeof globalThis === "undefined") {
 	{
 		get: (obj: {}, prop: string) => {
 			if (!event) return;
-			let node = event.target as HTMLElement;
+			let node = event.target as HTMLElement | null;
+			let element: HTMLElement | null = null;
 			let controller = null;
 			//Search for the nearest node with conroller
 			while (
@@ -206,21 +187,22 @@ if (typeof globalThis === "undefined") {
 				(globalThis as any)[controller] == undefined ||
 				(globalThis as any)[controller][prop] == undefined
 			) {
+				if (!node) return;
 				controller = node.getAttribute("controller");
 				if (controller) {
 					controller =
 						controller.charAt(0).toUpperCase() +
 						controller.slice(1);
 				}
-				if (node.parentElement) {
-					node = node.parentElement;
-				} else {
-					return;
-				}
+
+				element = node;
+				node = node.parentElement;
 			}
 
+			if (!element) return;
+
 			//Trying to return exposed controller's function
-			return (globalThis as any)[controller][prop];
+			return (globalThis as any)[controller][prop].bind(element);
 		}
 	}
 );

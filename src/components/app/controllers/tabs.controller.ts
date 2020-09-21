@@ -8,13 +8,6 @@ export default class Tabs extends Controller<"tabchanged">() {
 	private tabs: View[] = [];
 
 	/**
-	 * Creates template controller
-	 */
-	public constructor(name: string = "Tabs") {
-		super(name);
-	}
-
-	/**
 	 * Initializes tabs service
 	 * @param tabs Tabs views to control
 	 */

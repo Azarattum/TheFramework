@@ -3,4 +3,6 @@ import App from "./components/app/app";
 
 //Application init
 const app = new App();
-app.initialize();
+window.addEventListener("load", async () => {
+	await app.initialize();
+});

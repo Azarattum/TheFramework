@@ -1,6 +1,8 @@
 const Path = require("path");
 const TerserPlugin = require("terser-webpack-plugin");
 const WebpackCleanupPlugin = require("webpack-cleanup-plugin");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const WorkboxPlugin = require("workbox-webpack-plugin");
 
 const prod = process.argv.indexOf("-p") !== -1;
 
@@ -8,7 +10,14 @@ module.exports = {
 	entry: "./src/index.ts",
 	mode: prod ? "production" : "development",
 	devtool: prod ? undefined : "eval-source-map",
-	plugins: [prod ? new WebpackCleanupPlugin() : () => {}],
+	plugins: [
+		new HtmlWebpackPlugin({
+			template: "./src/index.pug",
+			minify: prod
+		}),
+		prod ? new WorkboxPlugin.GenerateSW() : () => {},
+		prod ? new WebpackCleanupPlugin() : () => {}
+	],
 	module: {
 		rules: [
 			{
@@ -40,6 +49,22 @@ module.exports = {
 				],
 				include: Path.resolve(__dirname, "../src"),
 				exclude: /node_modules/
+			},
+			{
+				test: /\.pug$/,
+				use: ["pug-loader"],
+				include: Path.resolve(__dirname, "./src"),
+				exclude: /node_modules/
+			},
+			{
+				test: /\.scss$/,
+				use: ["style-loader", "css-loader", "sass-loader"],
+				include: Path.resolve(__dirname, "./src"),
+				exclude: /node_modules/
+			},
+			{
+				test: /\.(vsh|fsh)$/,
+				loader: "ts-shader-loader"
 			}
 		]
 	},
@@ -52,6 +77,27 @@ module.exports = {
 		path: Path.resolve(__dirname, "../dist")
 	},
 	optimization: {
+		splitChunks: {
+			chunks: "all",
+			minSize: 60000,
+			maxSize: 240000,
+			minChunks: 1,
+			maxAsyncRequests: 6,
+			maxInitialRequests: 4,
+			automaticNameDelimiter: "~",
+			automaticNameMaxLength: 30,
+			cacheGroups: {
+				vendors: {
+					test: /[\\/]node_modules[\\/]/,
+					priority: -10
+				},
+				default: {
+					minChunks: 2,
+					priority: -20,
+					reuseExistingChunk: true
+				}
+			}
+		},
 		concatenateModules: false,
 		minimize: prod ? true : false,
 		minimizer: prod
@@ -66,5 +112,6 @@ module.exports = {
 					})
 			  ]
 			: []
-	}
+	},
+	target: "web"
 };

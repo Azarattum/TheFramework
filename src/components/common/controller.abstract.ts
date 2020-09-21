@@ -167,7 +167,7 @@ export default function Controller<T extends string>() {
 
 					object[property] = value;
 					for (const binding of bindings) {
-						binding.set(path, value);
+						binding.set(path, value, !this.safe);
 					}
 
 					return true;

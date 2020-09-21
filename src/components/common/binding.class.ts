@@ -319,6 +319,20 @@ export default class Binding {
 			attr = attr.replace(through, `${through}.${index}`);
 			special.setAttribute("bind", attr);
 		});
+		//Parse self attribute
+		this.bindAttribute(node);
+		let attr = node.getAttribute("placeholders");
+		if (attr) {
+			const pattern = (":" + through).replace(
+				/[.*+\-?^${}()|[\]\\]/g,
+				"\\$&"
+			);
+			attr = attr.replace(
+				new RegExp(pattern, "g"),
+				`:${through}.${index}`
+			);
+			node.setAttribute("placeholders", attr);
+		}
 
 		//Insert loop element
 		element.parentNode?.insertBefore(node, element);
@@ -353,7 +367,7 @@ export default class Binding {
 	 * @param path Property's path
 	 * @param value New property's value
 	 */
-	public set(path: string, value: any): boolean {
+	public set(path: string, value: any, html: boolean = false): boolean {
 		let changed = false;
 
 		//Update nested objects
@@ -385,7 +399,8 @@ export default class Binding {
 					}
 				}
 
-				changed = this.set(path + "." + key, value[key]) || changed;
+				changed =
+					this.set(path + "." + key, value[key], html) || changed;
 			}
 
 			return changed;
@@ -426,9 +441,16 @@ export default class Binding {
 					changed = true;
 				}
 			} else {
-				if (element.textContent != text) {
-					element.textContent = text;
-					changed = true;
+				if (html) {
+					if (element.innerHTML != text) {
+						element.innerHTML = text;
+						changed = true;
+					}
+				} else {
+					if (element.textContent != text) {
+						element.textContent = text;
+						changed = true;
+					}
 				}
 			}
 		});

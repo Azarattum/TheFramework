@@ -78,7 +78,7 @@ class ServiceWrapper {
 			// called in the service
 			if (type === "__exposed") {
 				const [name, id] = args;
-				this.exposer.expose(this.name, name, (...arg) => {
+				this.exposer.expose(this.name.toLowerCase(), name, (...arg) => {
 					return this.original.call(id, ...arg);
 				});
 			}

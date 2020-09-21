@@ -74,7 +74,12 @@ export default function Controller<T extends string>() {
 			const exposed =
 				func || ((this as any)[name] as Function).bind(this);
 
-			this.exposer.expose(this.name, name, exposed, this.relation);
+			this.exposer.expose(
+				this.name.toLowerCase(),
+				name,
+				exposed,
+				this.relation
+			);
 		}
 	}
 

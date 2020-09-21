@@ -30,9 +30,9 @@ describe("Controller", () => {
 		expect(callback1).toBeCalledTimes(1);
 		expect(callback2).toBeCalledTimes(1);
 		expect(expose).toBeCalledTimes(2);
-		expect(expose).toBeCalledWith("TestController", "test", exposed, null);
+		expect(expose).toBeCalledWith("testcontroller", "test", exposed, null);
 		expect(expose).toBeCalledWith(
-			"TestController",
+			"testcontroller",
 			"method",
 			expect.any(Function),
 			null

@@ -1,8 +1,8 @@
 /* eslint @typescript-eslint/explicit-function-return-type: 0 */
 import { IComponent } from "./manager.class";
 import Exposer from "./exposer.class";
-import Utils from "./utils.class";
 import Binding from "./binding.class";
+import Utils from "./utils.class";
 
 /**
  * Event-driven controller generic type builder

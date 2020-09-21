@@ -175,7 +175,43 @@ export function element(selector: string): Function {
 	return function(target: any, key: string): void {
 		const original = target.initialize;
 		target.initialize = function(...args: any[]): any {
-			this[key] = this.container.querySelector(selector);
+			Object.defineProperty(this, key, {
+				get: () => {
+					const element = this.container.querySelector(
+						selector
+					) as HTMLElement | null;
+
+					if (!element) {
+						throw new Error(
+							`Element "${selector}" does not exist!`
+						);
+					}
+
+					return element;
+				}
+			});
+
+			return original.bind(this)(...args);
+		};
+	};
+}
+
+/**
+ * Sets property to all elements by selector within the container
+ * @param selector HTML element selector
+ */
+export function elements(selector: string): Function {
+	return function(target: any, key: string): void {
+		const original = target.initialize;
+		target.initialize = function(...args: any[]): any {
+			Object.defineProperty(this, key, {
+				get: () => {
+					return this.container.querySelectorAll(
+						selector
+					) as HTMLElement | null;
+				}
+			});
+
 			return original.bind(this)(...args);
 		};
 	};

@@ -55,14 +55,14 @@ export default function Controller<T extends string>() {
 		 */
 		private registerContainer(
 			container: HTMLElement,
-			map: Map<string, (HTMLElement | Attr)[]>
+			map: Placeholders
 		): void {
 			if (!this.placeholders) return;
 
 			this.placeholders.set(container, map);
 
 			const placeholders = container.querySelectorAll(
-				"placeholder,[placeholder]"
+				"placeholder,[placeholders]"
 			);
 
 			//Interate through all placeholders
@@ -76,17 +76,21 @@ export default function Controller<T extends string>() {
 						map.set(name, []);
 					}
 
-					map.get(name)?.push(placeholder as HTMLElement);
+					map.get(name)?.push({
+						prefix: "",
+						postfix: "",
+						element: placeholder as HTMLElement
+					});
 					placeholder.innerHTML = "";
 				}
 				//Register attribute
 				else {
 					const placeholderAttribute = placeholder.getAttributeNode(
-						"placeholder"
+						"placeholders"
 					);
 					if (!placeholderAttribute) return;
 					//Parse predefined placeholder
-					if (placeholderAttribute.value != "-->") {
+					if (placeholderAttribute.value != "") {
 						const binds = placeholderAttribute.value.split(";");
 						for (const bind of binds) {
 							if (!bind) continue;
@@ -100,7 +104,16 @@ export default function Controller<T extends string>() {
 								map.set(name, []);
 							}
 
-							map.get(name)?.push(attr);
+							const prefix =
+								placeholder.getAttribute("_" + name) || "";
+							const postfix =
+								placeholder.getAttribute(name + "_") || "";
+
+							map.get(name)?.push({
+								prefix: prefix,
+								postfix: postfix,
+								element: attr
+							});
 						}
 						return;
 					}
@@ -110,19 +123,42 @@ export default function Controller<T extends string>() {
 					const attributes = placeholder.attributes;
 					for (const attribute of attributes) {
 						const match = attribute.value.match(
-							/<placeholder (\w+)\/><!--/
+							/^(.*)<placeholder (\w+)\/><!--/
 						);
 						if (!match) continue;
 
-						const name = match[1];
+						const name = match[2];
+						const prefix = match[1] || "";
+						const postfix =
+							placeholder
+								.getAttribute(`__postfix_${name}`)
+								?.slice(3) || "";
 
 						if (!map.has(name)) {
 							map.set(name, []);
 						}
 
+						if (prefix) {
+							placeholder.setAttribute(
+								"_" + attribute.name,
+								prefix
+							);
+						}
+						if (postfix) {
+							placeholder.setAttribute(
+								attribute.name + "_",
+								postfix
+							);
+						}
+
 						placeholderAttribute.value += `${attribute.name}:${name};`;
-						map.get(name)?.push(attribute);
+						map.get(name)?.push({
+							prefix: prefix,
+							postfix: postfix,
+							element: attribute
+						});
 						attribute.value = "";
+						placeholder.removeAttribute(`__postfix_${name}`);
 					}
 				}
 			});
@@ -212,9 +248,7 @@ export default function Controller<T extends string>() {
 					get: (object: {}, property: string) => {
 						if (!this.placeholders) return undefined;
 
-						let elements:
-							| (HTMLElement | Attr)[]
-							| undefined = undefined;
+						let elements: IPlaceholder[] | undefined = undefined;
 
 						if (this.sender) {
 							elements = this.placeholders
@@ -227,14 +261,19 @@ export default function Controller<T extends string>() {
 						}
 
 						if (!elements || elements.length <= 0) return undefined;
-						return elements[0].nodeValue || elements[0].textContent;
+						const text =
+							elements[0].element.nodeValue ||
+							elements[0].element.textContent;
+
+						return text?.slice(
+							elements[0].prefix.length,
+							text.length - elements[0].postfix.length
+						);
 					},
 					set: (object: {}, property: string, value: string) => {
 						if (!this.placeholders) return false;
 
-						let elements:
-							| (HTMLElement | Attr)[]
-							| undefined = undefined;
+						let elements: IPlaceholder[] | undefined = undefined;
 
 						if (this.sender) {
 							elements = this.placeholders
@@ -251,8 +290,9 @@ export default function Controller<T extends string>() {
 						if (!elements) return true;
 
 						elements.forEach(x => {
-							x.nodeValue = value;
-							x.textContent = value;
+							x.element.nodeValue = x.prefix + value + x.postfix;
+							x.element.textContent =
+								x.prefix + value + x.postfix;
 						});
 
 						return true;
@@ -266,6 +306,9 @@ export default function Controller<T extends string>() {
 	return Controller;
 }
 
+if (typeof globalThis === "undefined") {
+	(window as any).globalThis = window;
+}
 /**
  * Smart controller shortcut to the nearest controller property in DOM
  */
@@ -300,3 +343,17 @@ export default function Controller<T extends string>() {
 		}
 	}
 );
+
+/**
+ * Placeholders type
+ */
+type Placeholders = Map<string, IPlaceholder[]>;
+
+/**
+ * Placeholder interface
+ */
+interface IPlaceholder {
+	prefix: string;
+	postfix: string;
+	element: HTMLElement | Attr;
+}

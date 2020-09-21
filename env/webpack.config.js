@@ -8,7 +8,7 @@ const WorkboxPlugin = require("workbox-webpack-plugin");
 const data = new Proxy({},{
 	get: (object, property) => {
 			if (property == Symbol.toPrimitive)return () => "";
-			return `<placeholder ${property}/><!--"placeholder="-->`;
+			return `<placeholder ${property}/><!--"placeholders __postfix_${property}="-->`;
 		}
 	}
 );

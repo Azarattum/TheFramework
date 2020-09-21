@@ -8,6 +8,7 @@ This is **node** branch. Check **browser** for front-end development.
   - Bundles with **Webpack**
   - Preconfigured **ESList**
   - Preconfigured **Prettier**
+  - Preconfigured **VSCode** debugger
   - Event-driven
   - Strict naming and hierarchy
   - Lightweight

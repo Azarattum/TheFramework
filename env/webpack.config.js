@@ -7,7 +7,7 @@ const prod = process.argv.indexOf("-p") !== -1;
 module.exports = {
 	entry: "./src/index.ts",
 	mode: prod ? "production" : "development",
-	devtool: prod ? undefined : "eval-source-map",
+	devtool: prod ? undefined : "source-map",
 	plugins: [prod ? new WebpackCleanupPlugin() : () => {}],
 	module: {
 		rules: [
@@ -49,7 +49,8 @@ module.exports = {
 	output: {
 		filename: "bundle.js",
 		pathinfo: false,
-		path: Path.resolve(__dirname, "../dist")
+		path: Path.resolve(__dirname, "./dist"),
+		devtoolModuleFilenameTemplate: "[absolute-resource-path]"
 	},
 	optimization: {
 		concatenateModules: false,
@@ -66,5 +67,6 @@ module.exports = {
 					})
 			  ]
 			: []
-	}
+	},
+	target: "node"
 };

@@ -20,7 +20,7 @@
 		"eslint-plugin-the-framework": "file:env",
 		"jest": "^26.0.1",
 		"prettier": "^1.19.1",
-		"terser-webpack-plugin": "^2.3.5",
+		"terser-webpack-plugin": "^4.2.2",
 		"ts-jest": "^26.1.0",
 		"ts-loader": "^6.2.1",
 		"typescript": "^3.8.3",

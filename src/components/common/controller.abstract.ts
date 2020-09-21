@@ -86,9 +86,13 @@ export default function Controller<T extends string>() {
 		 * The container associated with current controller
 		 */
 		protected get container(): HTMLElement {
-			const container = document.querySelector(
-				`[controller=${(this as any).name.toLowerCase()}]`
-			);
+			const container = this.sender
+				? this.sender.closest(
+						`[controller=${(this as any).name.toLowerCase()}]`
+				  )
+				: document.querySelector(
+						`[controller=${(this as any).name.toLowerCase()}]`
+				  );
 
 			if (!container) {
 				throw new Error(`Container ${(this as any).name} not found!`);
@@ -113,8 +117,17 @@ export default function Controller<T extends string>() {
 			let node = event.target as HTMLElement;
 			let controller = null;
 			//Search for the nearest node with conroller
-			while (controller == null) {
+			while (
+				controller == null ||
+				(globalThis as any)[controller] == undefined ||
+				(globalThis as any)[controller][prop] == undefined
+			) {
 				controller = node.getAttribute("controller");
+				if (controller) {
+					controller =
+						controller.charAt(0).toUpperCase() +
+						controller.slice(1);
+				}
 				if (node.parentElement) {
 					node = node.parentElement;
 				} else {
@@ -123,8 +136,6 @@ export default function Controller<T extends string>() {
 			}
 
 			//Trying to return exposed controller's function
-			controller =
-				controller.charAt(0).toUpperCase() + controller.slice(1);
 			return (globalThis as any)[controller][prop];
 		}
 	}

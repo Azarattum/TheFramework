@@ -10,8 +10,8 @@ export default class Tabs extends Controller<"tabchanged">() {
 	/**
 	 * Creates template controller
 	 */
-	public constructor(name: string = "") {
-		super("Tabs" + name);
+	public constructor(name: string = "Tabs") {
+		super(name);
 	}
 
 	/**

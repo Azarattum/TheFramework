@@ -3,6 +3,8 @@ import { IComponent } from "./manager.class";
 import Exposer from "./exposer.class";
 import Utils from "./utils.class";
 
+import Binding from "./binding.class";
+
 /**
  * Event-driven controller generic type builder
  */
@@ -38,169 +40,19 @@ export default function Controller<T extends string>() {
 		 * Initializes data binding for the controller
 		 */
 		protected bind(): void {
-			this.placeholders = new Map();
+			this.bindings = new Map();
 
-			const containers = document.querySelectorAll(
-				`[controller=${(this as any).name.toLowerCase()}]`
-			);
+			const containers = Array.from(
+				document.querySelectorAll(
+					`[controller=${(this as any).name.toLowerCase()}]`
+				)
+			).reverse() as HTMLElement[];
 
 			for (const container of containers) {
-				const map = new Map();
-				this.registerContainer(container as HTMLElement, map);
+				const binding = new Binding(container);
+				binding.bind();
+				this.bindings.set(container, binding);
 			}
-		}
-
-		/**
-		 * Registers data binding for container
-		 */
-		private registerContainer(
-			container: HTMLElement,
-			map: Placeholders
-		): void {
-			if (!this.placeholders) return;
-
-			this.placeholders.set(container, map);
-
-			const placeholders = container.querySelectorAll(
-				"placeholder,[placeholders]"
-			);
-
-			//Interate through all placeholders
-			placeholders.forEach(placeholder => {
-				//Register node
-				if (placeholder.tagName.toLowerCase() == "placeholder") {
-					const name = placeholder.attributes.item(0)?.name;
-					if (!name) return;
-
-					if (!map.has(name)) {
-						map.set(name, []);
-					}
-
-					map.get(name)?.push({
-						prefix: "",
-						postfix: "",
-						element: placeholder as HTMLElement
-					});
-					placeholder.innerHTML = "";
-				}
-				//Register attribute
-				else {
-					const placeholderAttribute = placeholder.getAttributeNode(
-						"placeholders"
-					);
-					if (!placeholderAttribute) return;
-					//Parse predefined placeholder
-					if (placeholderAttribute.value != "") {
-						const binds = placeholderAttribute.value.split(";");
-						for (const bind of binds) {
-							if (!bind) continue;
-							const parts = bind.split(":");
-							const attr = placeholder.getAttributeNode(parts[0]);
-							const name = parts[1];
-
-							if (!name || !attr) return;
-
-							if (!map.has(name)) {
-								map.set(name, []);
-							}
-
-							const prefix =
-								placeholder.getAttribute("_" + attr.name) || "";
-							const postfix =
-								placeholder.getAttribute(attr.name + "_") || "";
-
-							map.get(name)?.push({
-								prefix: prefix,
-								postfix: postfix,
-								element: attr
-							});
-						}
-						return;
-					}
-					//Define new placeholder
-					placeholderAttribute.value = "";
-
-					const attributes = placeholder.attributes;
-					for (const attribute of attributes) {
-						const match = attribute.value.match(
-							/^(.*)<placeholder ([\w.]+)><!--/
-						);
-						if (!match) continue;
-
-						const name = match[2];
-						const prefix = match[1] || "";
-						const postfix =
-							placeholder
-								.getAttribute(`__postfix_${name}`)
-								?.slice(17) || "";
-
-						if (!map.has(name)) {
-							map.set(name, []);
-						}
-
-						if (prefix) {
-							placeholder.setAttribute(
-								"_" + attribute.name,
-								prefix
-							);
-						}
-						if (postfix) {
-							placeholder.setAttribute(
-								attribute.name + "_",
-								postfix
-							);
-						}
-
-						placeholderAttribute.value += `${attribute.name}:${name};`;
-						map.get(name)?.push({
-							prefix: prefix,
-							postfix: postfix,
-							element: attribute
-						});
-						attribute.value = prefix + postfix;
-						placeholder.removeAttribute(`__postfix_${name}`);
-					}
-				}
-			});
-
-			const bindings = container.querySelectorAll("input[bind]");
-			bindings.forEach(binding => {
-				const input = binding as HTMLInputElement;
-				const path = binding
-					.getAttribute("bind")
-					?.replace(/^data\.?/, "");
-				if (!path) return;
-
-				const handler = (event: Event) => {
-					this.sender = input;
-					const names = path.split(".");
-					const last = names.pop();
-					if (!last) return;
-
-					let proxy = this.data;
-					for (const name of names) {
-						proxy = proxy[name];
-					}
-
-					if (["radio", "checkbox"].includes(input.type)) {
-						proxy[last] = input.checked;
-					} else {
-						proxy[last] = input.value;
-					}
-				};
-
-				if (input.type == "radio") {
-					document
-						.querySelectorAll(
-							`input[type="radio"][name="${input.name}"]`
-						)
-						.forEach(radio => {
-							radio.addEventListener("input", handler);
-						});
-				} else {
-					input.addEventListener("input", handler);
-				}
-			});
 		}
 
 		/**
@@ -277,128 +129,54 @@ export default function Controller<T extends string>() {
 		 * Binded to the controller data
 		 */
 		protected get data(): Record<string, any> {
-			if (!this.placeholders) {
+			if (!this.bindings) {
 				throw new Error("Use this.bind() to bind your data first!");
 			}
 
+			let bindings: Iterable<Binding> = [];
+			if (this.sender) {
+				const binding = this.bindings.get(this.container);
+				if (binding) bindings = [binding];
+			} else {
+				bindings = this.bindings.values();
+			}
+
 			const handler = {
-				get: (object: { _: string }, property: any): any => {
+				get: ({ path }: { path: string }, property: any): any => {
 					//Nothing found
-					if (
-						property == Symbol.toPrimitive ||
-						property == "toJSON" ||
-						property == "toString"
-					) {
-						return () => undefined;
-					}
+					const empty = [Symbol.toPrimitive, "toJSON", "toString"];
+					if (empty.includes(property)) return () => undefined;
+					if (!this.bindings) return undefined;
 
-					//Prepare new object for recursive search
-					const newObject = {
-						_: (object._ ? object._ + "." : "") + property
-					};
+					path = (path ? path + "." : "") + property;
 
-					if (!this.placeholders) return undefined;
-
-					let elements: IPlaceholder[] | undefined = undefined;
-
-					//Try to find the element
-					const inputs: Element[] = [];
-					if (this.sender) {
-						elements = this.placeholders
-							.get(this.container)
-							?.get(newObject._);
-						inputs.push(
-							...this.container.querySelectorAll(
-								`input[bind="data.${property}"]`
-							)
-						);
-					} else {
-						this.placeholders.forEach((map, container) => {
-							elements = elements || map.get(newObject._);
-							inputs.push(
-								...container.querySelectorAll(
-									`input[bind="data.${property}"]`
-								)
-							);
-						});
-					}
-
-					if (inputs.length > 0) {
-						const input = inputs[0] as HTMLInputElement;
-						if (["radio", "checkbox"].includes(input.type)) {
-							return input.checked;
-						} else {
-							return input.value;
-						}
-					}
+					const binding = bindings[Symbol.iterator]().next().value as
+						| Binding
+						| undefined;
+					const data = binding?.get(path);
+					if (data) return data;
 
 					//Continue searching
-					if (!elements || elements.length <= 0) {
-						return new Proxy(newObject, handler);
-					}
-
-					const text =
-						elements[0].element.nodeValue ||
-						elements[0].element.textContent;
-
-					return text?.slice(
-						elements[0].prefix.length,
-						text.length - elements[0].postfix.length
-					);
+					return new Proxy({ path }, handler);
 				},
 				set: (
-					object: { _: string },
+					{ path }: { path: string },
 					property: string,
 					value: string
 				) => {
-					if (!this.placeholders) return false;
+					if (!this.bindings) return false;
 
-					property = (object._ ? object._ + "." : "") + property;
-					let elements: IPlaceholder[] | undefined = undefined;
+					path = (path ? path + "." : "") + property;
 
-					const inputs: Element[] = [];
-					if (this.sender) {
-						elements = this.placeholders
-							.get(this.container)
-							?.get(property);
-
-						inputs.push(
-							...this.container.querySelectorAll(
-								`input[bind="data.${property}"]`
-							)
-						);
-					} else {
-						elements = [];
-						this.placeholders.forEach((map, container) => {
-							const prop = map.get(property);
-							if (prop) elements?.push(...prop);
-							inputs.push(
-								...container.querySelectorAll(
-									`input[bind="data.${property}"]`
-								)
-							);
-						});
+					for (const binding of bindings) {
+						binding.set(path, value);
 					}
-
-					//Set data in binded inputs
-					for (const input of inputs) {
-						(input as HTMLInputElement).value = value;
-						(input as HTMLInputElement).checked =
-							(value as unknown) === true || value == "true";
-					}
-
-					if (!elements) return true;
-
-					elements.forEach(x => {
-						x.element.nodeValue = x.prefix + value + x.postfix;
-						x.element.textContent = x.prefix + value + x.postfix;
-					});
 
 					return true;
 				}
 			};
 
-			return new Proxy({ _: "" }, handler);
+			return new Proxy({ path: "" }, handler);
 		}
 	}
 
@@ -443,17 +221,3 @@ if (typeof globalThis === "undefined") {
 		}
 	}
 );
-
-/**
- * Placeholders type
- */
-type Placeholders = Map<string, IPlaceholder[]>;
-
-/**
- * Placeholder interface
- */
-interface IPlaceholder {
-	prefix: string;
-	postfix: string;
-	element: HTMLElement | Attr;
-}

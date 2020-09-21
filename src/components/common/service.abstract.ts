@@ -118,7 +118,12 @@ export default function Service<T extends string>() {
 			this.exposed.clear();
 			this.resolve = null;
 			this.events = [];
-			self?.close();
+
+			if ((self as any).ports) {
+				for (const port of (self as any).ports) {
+					port.close();
+				}
+			}
 		}
 	}
 

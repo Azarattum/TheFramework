@@ -3,6 +3,41 @@
  * @param {string} source Service source code
  */
 module.exports = source => {
+	const path = require("path");
+
+	source = source
+		.replace(
+			"!worker-loader",
+			`!${path
+				.resolve(__dirname, "worker.loader.js")
+				.replace(/\\/g, "\\\\")}!worker-loader`
+		)
+		.replace(
+			"comlink-worker-loader.js!",
+			`comlink-worker-loader.js!${path
+				.resolve(__dirname, "adapter.loader.js")
+				.replace(/\\/g, "\\\\")}!`
+		)
+		.replace(
+			"module.exports = require('comlink')",
+			`const ne = require("comlink/dist/umd/node-adapter.js");
+			const c = require('comlink');
+			c.transferHandlers.set("proxy", {
+				canHandle: obj =>
+					obj && obj[c.proxyMarker],
+				serialize: obj => {
+					const { port1, port2 } = new (require('worker_threads').MessageChannel)();
+					c.expose(obj, ne(port1));
+					return [port2, [port2]];
+				},
+				deserialize: port => {
+					port = ne(port);
+					port.start();
+					return c.wrap(port);
+				}
+			});module.exports = c`
+		);
+
 	return (
 		source +
 		ServiceWrapper.toString() +

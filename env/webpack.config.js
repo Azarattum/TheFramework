@@ -44,7 +44,7 @@ module.exports = {
 			}
 		]
 	},
-	externals: [NodeExternals()],
+	externals: [NodeExternals({ whitelist: [/^comlink/] })],
 	resolve: {
 		extensions: [".ts", ".js"]
 	},

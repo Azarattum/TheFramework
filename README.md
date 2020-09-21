@@ -1,7 +1,7 @@
-# The Framework [BASE]
-For easy development of js/ts applications.
+# The Framework [NODE]
+For easy development js/ts applications.
 
-This is **base** branch! Check [**node**](https://github.com/Azarattum/TheFramework/tree/node) or [**browser**](https://github.com/Azarattum/TheFramework/tree/browser) for platform specific development.
+This is **node** branch. Check **browser** for front-end development.
 
 ## Features & Technologies:
   - Uses **Typescript**
@@ -24,6 +24,7 @@ npm install
 ### NPM Scripts:
 | Script   | Description                                             |
 | -------- | ------------------------------------------------------- |
+| **run**  | Runs your application                                   |
 | release  | Creates a production build of the project               |
 | build    | Builds the entire project with webpack                  |
 | watch    | Watches all file changes and rebuilds them if necessary |

@@ -5,7 +5,7 @@ export default class Binding {
 	private container: HTMLElement;
 	private placeholders: Placeholders;
 	private binds: NodeListOf<HTMLInputElement> | null;
-	private data: Map<string, string>;
+	private data: any;
 
 	/**
 	 * Creates binding on a container
@@ -14,7 +14,7 @@ export default class Binding {
 	public constructor(container: HTMLElement) {
 		this.container = container;
 		this.placeholders = new Map();
-		this.data = new Map();
+		this.data = {};
 		this.binds = null;
 	}
 
@@ -74,6 +74,18 @@ export default class Binding {
 
 		this.register(path, element);
 		element.innerHTML = "";
+
+		if ((element as any).observed) return;
+		const observer = new MutationObserver(mutationList => {
+			const mutation = mutationList[mutationList.length - 1];
+
+			const value = mutation.addedNodes[0]?.textContent || "";
+			if (!value) return;
+			const path = (mutation.target as HTMLElement).attributes[0].name;
+			this.set(path, value);
+		});
+		observer.observe(element, { childList: true });
+		(element as any).observed = true;
 	}
 
 	/**
@@ -131,6 +143,32 @@ export default class Binding {
 
 			element.removeAttribute(`__postfix_${path}`);
 		}
+
+		if ((element as any).observed) return;
+		const observer = new MutationObserver(mutationList => {
+			const mutation = mutationList[mutationList.length - 1];
+
+			const name = mutation.attributeName;
+			if (!name) return;
+			let value = element.getAttribute(name);
+			if (!value) return;
+			const postfix = element.getAttribute(name + "_") || "";
+			const prefix = element.getAttribute("_" + name) || "";
+			value = value.slice(prefix.length, value.length - postfix.length);
+
+			let path = null;
+			const parts = element.getAttribute("placeholders")?.split(";");
+			if (!parts) return;
+			for (const part of parts) {
+				if (part.split(":")[0] == name) {
+					path = part.split(":")[1];
+				}
+			}
+			if (!path) return;
+			this.set(path, value);
+		});
+		observer.observe(element, { attributes: true });
+		(element as any).observed = true;
 	}
 
 	/**
@@ -170,8 +208,17 @@ export default class Binding {
 	 * Gets binded property
 	 * @param path Property's path
 	 */
-	public get(path: string): string | undefined {
-		return this.data.get(path);
+	public get(path?: string): any {
+		if (!path) return this.data;
+
+		let object: any = this.data;
+		const parts = path.split(".");
+		for (const prop of parts) {
+			if (object[prop] === undefined) object[prop] = {};
+			object = object[prop];
+		}
+
+		return object;
 	}
 
 	/**
@@ -179,28 +226,58 @@ export default class Binding {
 	 * @param path Property's path
 	 * @param value New property's value
 	 */
-	public set(path: string, value: any): void {
-		//Update data value
-		this.data.set(path, value);
+	public set(path: string, value: any): boolean {
+		let changed = false;
 
 		//Update binded elements
 		this.binds?.forEach(binding => {
 			if (binding.getAttribute("bind") === path) {
-				binding.value = value as string;
-				binding.checked = value === true || value == "true";
+				if (["radio", "checkbox"].includes(binding.type)) {
+					if (
+						(binding.checked != value) === true ||
+						value == "true"
+					) {
+						binding.checked = value === true || value == "true";
+						if (binding.value == value) {
+							binding.dispatchEvent(new Event("input"));
+						}
+						changed = true;
+					}
+				} else if (binding.value != value.toString()) {
+					binding.value = value as string;
+					if (binding.value == value) {
+						binding.dispatchEvent(new Event("input"));
+					}
+					changed = true;
+				}
 			}
 		});
 
-		//Update placeholders
+		//Update data value
 		const placeholders = this.placeholders.get(path);
-		if (!placeholders) return;
+		if (changed || (placeholders && placeholders.length > 0)) {
+			let object: any = this.data;
+			const parts = path.split(".");
+			const last = parts.pop();
+			if (last) {
+				for (const prop of parts) {
+					if (object[prop] === undefined) object[prop] = {};
+					object = object[prop];
+				}
+				object[last] = value.toString();
+			}
+		}
+		if (!placeholders || placeholders.length <= 0) return changed;
 
+		//Update placeholders
 		placeholders.forEach(placeholder => {
-			placeholder.element.nodeValue =
-				placeholder.prefix + value + placeholder.postfix;
-			placeholder.element.textContent =
-				placeholder.prefix + value + placeholder.postfix;
+			const text = placeholder.prefix + value + placeholder.postfix;
+			const element = placeholder.element;
+			if (element.nodeValue != text) element.nodeValue = text;
+			if (element.textContent != text) element.textContent = text;
 		});
+
+		return true;
 	}
 }
 

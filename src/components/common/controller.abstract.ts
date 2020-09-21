@@ -4,6 +4,7 @@ import Exposer from "./exposer.class";
 import Utils from "./utils.class";
 
 import Binding from "./binding.class";
+import Utils from "./utils.class";
 
 /**
  * Event-driven controller generic type builder
@@ -133,40 +134,38 @@ export default function Controller<T extends string>() {
 				throw new Error("Use this.bind() to bind your data first!");
 			}
 
-			let bindings: Iterable<Binding> = [];
+			let bindings: Binding[] = [];
 			if (this.sender) {
 				const binding = this.bindings.get(this.container);
 				if (binding) bindings = [binding];
 			} else {
-				bindings = this.bindings.values();
+				bindings = Array.from(this.bindings.values());
 			}
 
 			const handler = {
-				get: ({ path }: { path: string }, property: any): any => {
-					//Nothing found
-					const empty = [Symbol.toPrimitive, "toJSON", "toString"];
-					if (empty.includes(property)) return () => undefined;
-					if (!this.bindings) return undefined;
+				get: (object: any, property: any): any => {
+					const path =
+						(object.__origin ? object.__origin + "." : "") +
+						property;
 
-					path = (path ? path + "." : "") + property;
-
-					const binding = bindings[Symbol.iterator]().next().value as
-						| Binding
-						| undefined;
-					const data = binding?.get(path);
-					if (data != null) return data;
-
+					const data = object[property];
 					//Continue searching
-					return new Proxy({ path }, handler);
-				},
-				set: (
-					{ path }: { path: string },
-					property: string,
-					value: string
-				) => {
-					if (!this.bindings) return false;
+					if (typeof data == "object") {
+						return new Proxy({ ...data, __origin: path }, handler);
+					}
+					if (data === undefined) {
+						return new Proxy({ ...data, __origin: path }, handler);
+					}
 
-					path = (path ? path + "." : "") + property;
+					return data;
+				},
+				set: (object: any, property: string, value: string) => {
+					object[property] = value;
+
+					if (!this.bindings) return false;
+					const path =
+						(object.__origin ? object.__origin + "." : "") +
+						property;
 
 					for (const binding of bindings) {
 						binding.set(path, value);
@@ -176,7 +175,12 @@ export default function Controller<T extends string>() {
 				}
 			};
 
-			return new Proxy({ path: "" }, handler);
+			const data: any = {};
+			for (const binding of bindings) {
+				Utils.mergeObjects(data, binding.get());
+			}
+			data.__origin = "";
+			return new Proxy(data, handler);
 		}
 	}
 

@@ -35,6 +35,102 @@ export default function Controller<T extends string>() {
 		}
 
 		/**
+		 * Initializes data binding for the controller
+		 */
+		protected bind(): void {
+			this.placeholders = new Map();
+
+			const containers = document.querySelectorAll(
+				`[controller=${(this as any).name.toLowerCase()}]`
+			);
+
+			for (const container of containers) {
+				const map = new Map();
+				this.registerContainer(container as HTMLElement, map);
+			}
+
+			console.log(this.placeholders);
+		}
+
+		/**
+		 * Registers data binding for container
+		 */
+		private registerContainer(
+			container: HTMLElement,
+			map: Map<string, (HTMLElement | Attr)[]>
+		): void {
+			if (!this.placeholders) return;
+
+			this.placeholders.set(container, map);
+
+			const placeholders = container.querySelectorAll(
+				"placeholder,[placeholder]"
+			);
+
+			//Interate through all placeholders
+			placeholders.forEach(placeholder => {
+				//Register node
+				if (placeholder.tagName.toLowerCase() == "placeholder") {
+					const name = placeholder.attributes.item(0)?.name;
+					if (!name) return;
+
+					if (!map.has(name)) {
+						map.set(name, []);
+					}
+
+					map.get(name)?.push(placeholder as HTMLElement);
+					placeholder.innerHTML = "";
+				}
+				//Register attribute
+				else {
+					const placeholderAttribute = placeholder.getAttributeNode(
+						"placeholder"
+					);
+					if (!placeholderAttribute) return;
+					//Parse predefined placeholder
+					if (placeholderAttribute.value != "-->") {
+						const binds = placeholderAttribute.value.split(";");
+						for (const bind of binds) {
+							if (!bind) continue;
+							const parts = bind.split(":");
+							const attr = placeholder.getAttributeNode(parts[0]);
+							const name = parts[1];
+
+							if (!name || !attr) return;
+
+							if (!map.has(name)) {
+								map.set(name, []);
+							}
+
+							map.get(name)?.push(attr);
+						}
+						return;
+					}
+					//Define new placeholder
+					placeholderAttribute.value = "";
+
+					const attributes = placeholder.attributes;
+					for (const attribute of attributes) {
+						const match = attribute.value.match(
+							/<placeholder (\w+)\/><!--/
+						);
+						if (!match) continue;
+
+						const name = match[1];
+
+						if (!map.has(name)) {
+							map.set(name, []);
+						}
+
+						placeholderAttribute.value += `${attribute.name}:${name};`;
+						map.get(name)?.push(attribute);
+						attribute.value = "";
+					}
+				}
+			});
+		}
+
+		/**
 		 * Closes the controller
 		 */
 		public close(): void {
@@ -102,6 +198,69 @@ export default function Controller<T extends string>() {
 			}
 
 			return container as HTMLElement;
+		}
+
+		/**
+		 * Binded to the controller data
+		 */
+		protected get data(): Record<string, string> {
+			if (!this.placeholders) {
+				throw new Error("Use this.bind() to bind your data first!");
+			}
+
+			return new Proxy(
+				{},
+				{
+					get: (object: {}, property: string) => {
+						if (!this.placeholders) return undefined;
+
+						let elements:
+							| (HTMLElement | Attr)[]
+							| undefined = undefined;
+
+						if (this.sender) {
+							elements = this.placeholders
+								.get(this.container)
+								?.get(property);
+						} else {
+							this.placeholders.forEach(map => {
+								elements = elements || map.get(property);
+							});
+						}
+
+						if (!elements || elements.length <= 0) return undefined;
+						return elements[0].nodeValue || elements[0].textContent;
+					},
+					set: (object: {}, property: string, value: string) => {
+						if (!this.placeholders) return false;
+
+						let elements:
+							| (HTMLElement | Attr)[]
+							| undefined = undefined;
+
+						if (this.sender) {
+							elements = this.placeholders
+								.get(this.container)
+								?.get(property);
+						} else {
+							elements = [];
+							this.placeholders.forEach(map => {
+								const prop = map.get(property);
+								if (prop) elements?.push(...prop);
+							});
+						}
+
+						if (!elements) return true;
+
+						elements.forEach(x => {
+							x.nodeValue = value;
+							x.textContent = value;
+						});
+
+						return true;
+					}
+				}
+			);
 		}
 	}
 

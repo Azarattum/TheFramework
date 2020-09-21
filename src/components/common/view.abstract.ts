@@ -37,7 +37,10 @@ export default abstract class View {
 	 * Renders the content to the view's container
 	 * @param content View content
 	 */
-	public render(template: Function | null = null, args: {} = {}): void {
+	public render(
+		template: Function | null = null,
+		args: Record<string, any> = {}
+	): void {
 		if (!this.windowLoaded) {
 			this.template = template;
 			return;
@@ -55,10 +58,10 @@ export default abstract class View {
 			//Wrap functional arguments
 			const xArgs = {};
 			for (const key in args) {
-				if (args.hasOwnProperty(key)) {
+				if (Object.prototype.hasOwnProperty.call(args, key)) {
 					const value = (args as any)[key];
 					if (typeof value == "function") {
-						(xArgs as any)[key] = (...args: any[]) => {
+						(xArgs as any)[key] = (...args: any[]): any => {
 							return value(x, ...args);
 						};
 					} else {
@@ -66,6 +69,8 @@ export default abstract class View {
 					}
 				}
 			}
+			(xArgs as any)["data"] = this.data;
+
 			x.innerHTML = template(xArgs);
 		});
 		this.template = null;
@@ -93,6 +98,21 @@ export default abstract class View {
 				x.style.display = "none";
 			});
 		}
+	}
+
+	/**
+	 * Data proxy for placeholders
+	 */
+	private get data(): Record<string, string> {
+		return new Proxy(
+			{},
+			{
+				get: (object: {}, property: any): any => {
+					if (property == Symbol.toPrimitive) return (): string => "";
+					return `<placeholder ${property}/><!--"placeholder="-->`;
+				}
+			}
+		);
 	}
 
 	/**

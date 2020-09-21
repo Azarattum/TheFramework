@@ -162,6 +162,45 @@ export default function Controller<T extends string>() {
 					}
 				}
 			});
+
+			const bindings = container.querySelectorAll("input[bind]");
+			bindings.forEach(binding => {
+				const input = binding as HTMLInputElement;
+				const path = binding
+					.getAttribute("bind")
+					?.replace(/^data\.?/, "");
+				if (!path) return;
+
+				const handler = (event: Event) => {
+					this.sender = input;
+					const names = path.split(".");
+					const last = names.pop();
+					if (!last) return;
+
+					let proxy = this.data;
+					for (const name of names) {
+						proxy = proxy[name];
+					}
+
+					if (["radio", "checkbox"].includes(input.type)) {
+						proxy[last] = input.checked;
+					} else {
+						proxy[last] = input.value;
+					}
+				};
+
+				if (input.type == "radio") {
+					document
+						.querySelectorAll(
+							`input[type="radio"][name="${input.name}"]`
+						)
+						.forEach(radio => {
+							radio.addEventListener("input", handler);
+						});
+				} else {
+					input.addEventListener("input", handler);
+				}
+			});
 		}
 
 		/**
@@ -263,14 +302,34 @@ export default function Controller<T extends string>() {
 					let elements: IPlaceholder[] | undefined = undefined;
 
 					//Try to find the element
+					const inputs: Element[] = [];
 					if (this.sender) {
 						elements = this.placeholders
 							.get(this.container)
 							?.get(newObject._);
+						inputs.push(
+							...this.container.querySelectorAll(
+								`input[bind="data.${property}"]`
+							)
+						);
 					} else {
-						this.placeholders.forEach(map => {
+						this.placeholders.forEach((map, container) => {
 							elements = elements || map.get(newObject._);
+							inputs.push(
+								...container.querySelectorAll(
+									`input[bind="data.${property}"]`
+								)
+							);
 						});
+					}
+
+					if (inputs.length > 0) {
+						const input = inputs[0] as HTMLInputElement;
+						if (["radio", "checkbox"].includes(input.type)) {
+							return input.checked;
+						} else {
+							return input.value;
+						}
 					}
 
 					//Continue searching
@@ -297,16 +356,35 @@ export default function Controller<T extends string>() {
 					property = (object._ ? object._ + "." : "") + property;
 					let elements: IPlaceholder[] | undefined = undefined;
 
+					const inputs: Element[] = [];
 					if (this.sender) {
 						elements = this.placeholders
 							.get(this.container)
 							?.get(property);
+
+						inputs.push(
+							...this.container.querySelectorAll(
+								`input[bind="data.${property}"]`
+							)
+						);
 					} else {
 						elements = [];
-						this.placeholders.forEach(map => {
+						this.placeholders.forEach((map, container) => {
 							const prop = map.get(property);
 							if (prop) elements?.push(...prop);
+							inputs.push(
+								...container.querySelectorAll(
+									`input[bind="data.${property}"]`
+								)
+							);
 						});
+					}
+
+					//Set data in binded inputs
+					for (const input of inputs) {
+						(input as HTMLInputElement).value = value;
+						(input as HTMLInputElement).checked =
+							(value as unknown) === true || value == "true";
 					}
 
 					if (!elements) return true;

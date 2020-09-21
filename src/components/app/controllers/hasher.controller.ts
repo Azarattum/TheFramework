@@ -3,7 +3,7 @@ import Controller from "../../common/controller.abstract";
 /**
  * Util controller to work with URL hash
  */
-export default class Hash extends Controller<"loaded">() {
+export default class Hasher extends Controller<"loaded">() {
 	/** Whether the hash is frozen from changes */
 	private frozen: boolean = false;
 

@@ -4,7 +4,7 @@ import Controller from "../../common/controller.abstract";
 /**
  * Controller responsible for offline caching
  */
-export default class Offline extends Controller<"">() {
+export default class Offliner extends Controller<"">() {
 	/**
 	 * No object relations for this controller
 	 */

@@ -240,22 +240,39 @@ export default class Binding {
 						binding.checked = value === true || value == "true";
 						if (binding.value == value) {
 							binding.dispatchEvent(new Event("input"));
+							changed = true;
 						}
-						changed = true;
 					}
 				} else if (binding.value != value.toString()) {
 					binding.value = value as string;
 					if (binding.value == value) {
 						binding.dispatchEvent(new Event("input"));
+						changed = true;
 					}
+				}
+			}
+		});
+
+		//Update placeholders
+		const placeholders = this.placeholders.get(path);
+		placeholders?.forEach(placeholder => {
+			const text = placeholder.prefix + value + placeholder.postfix;
+			const element = placeholder.element;
+			if (element instanceof Attr) {
+				if (element.nodeValue != text) {
+					element.nodeValue = text;
+					changed = true;
+				}
+			} else {
+				if (element.textContent != text) {
+					element.textContent = text;
 					changed = true;
 				}
 			}
 		});
 
 		//Update data value
-		const placeholders = this.placeholders.get(path);
-		if (changed || (placeholders && placeholders.length > 0)) {
+		if (changed) {
 			let object: any = this.data;
 			const parts = path.split(".");
 			const last = parts.pop();
@@ -267,17 +284,8 @@ export default class Binding {
 				object[last] = value.toString();
 			}
 		}
-		if (!placeholders || placeholders.length <= 0) return changed;
 
-		//Update placeholders
-		placeholders.forEach(placeholder => {
-			const text = placeholder.prefix + value + placeholder.postfix;
-			const element = placeholder.element;
-			if (element.nodeValue != text) element.nodeValue = text;
-			if (element.textContent != text) element.textContent = text;
-		});
-
-		return true;
+		return changed;
 	}
 }
 

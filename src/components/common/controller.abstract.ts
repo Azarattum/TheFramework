@@ -204,9 +204,7 @@ if (typeof globalThis === "undefined") {
 				if (!node) return;
 				controller = node.getAttribute("controller");
 				if (controller) {
-					controller =
-						controller.charAt(0).toUpperCase() +
-						controller.slice(1);
+					controller = controller.toLowerCase();
 				}
 
 				element = node;

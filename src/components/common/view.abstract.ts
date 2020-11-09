@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { IComponent } from "./manager.class";
-import Utils, { LogType } from "./utils.class";
+import Utils from "./utils.class";
 
 /**
  * View class type generator
@@ -16,153 +16,130 @@ export default function View(template: Function) {
 		public readonly name: string;
 		/**View universal unique id */
 		public readonly uuid: string;
-		/**The container associated with current view */
-		protected readonly container: HTMLElement | null;
 		/**HTML template function */
 		protected template: Function;
-		/**Whether the view is rendered now */
-		private rendered: boolean;
 
 		/**
 		 * Creates new view component
 		 * @param name The name of view
 		 */
-		public constructor(exposer: any, relation?: object) {
+		public constructor() {
 			this.uuid = Utils.generateID();
 			this.name = this.constructor.name;
 			this.template = template;
-			this.rendered = false;
-
-			if (relation instanceof HTMLElement) {
-				this.container = relation;
-			} else {
-				if (!relation) {
-					Utils.log(
-						`Container for view ${this.name} not found!`,
-						LogType.WARNING
-					);
-				} else {
-					Utils.log(
-						`${relation} is not a valid container for view ${this.name}!`,
-						LogType.ERROR
-					);
-				}
-				this.container = null;
-			}
-
-			this.render();
+			this.defineElement();
 		}
 
 		/**
-		 * All relational objects (html elements) displayed by this view
+		 * Returns all the view-elements of current view
 		 */
-		public static get relations(): object[] {
-			return Array.from(
-				document.querySelectorAll(`[view=${this.name.toLowerCase()}]`)
+		public get containers(): NodeListOf<ViewElement> {
+			return document.querySelectorAll<ViewElement>(
+				`view-${this.name.toLowerCase()}`
 			);
 		}
 
 		/**
-		 * Initializes view component by rendering it
-		 * @param args View render arguments
+		 * Defines a custom element for the view
 		 */
-		public async initialize(args?: Record<string, any>): Promise<void> {
-			if (!this.rendered || args) {
-				this.render(args);
+		protected defineElement(): void {
+			const regexp = /\(function\s*?\((([a-zA-Z0-9_$]+,?\s*?)+)\)\s*?\{/;
+			const result = template.toString().match(regexp);
+			let dataPoints: string[] = [];
+			if (result) {
+				dataPoints = result[1]?.replace(/ /g, "")?.split(",") || [];
 			}
-		}
 
-		/**
-		 * Renders the content to the view's container
-		 * @param content View content
-		 */
-		public render(args: Record<string, any> = {}): void {
-			if (!this.container) return;
-			//Clone object
-			args = Object.assign({}, args);
+			customElements.define(
+				`view-${this.name.toLowerCase()}`,
+				class extends HTMLElement {
+					/**View's universal unique id */
+					public readonly uuid: string;
+					private renderHandle?: number;
+					private reflectionHandle?: number;
 
-			//Binding argument functions to the container
-			const bind = (object: Record<string, any>) => {
-				for (const key in object) {
-					if (typeof object[key] == "function") {
-						object[key] = object[key].bind(this.container);
-					} else if (typeof object[key] == "object") {
-						bind(object[key]);
+					public constructor() {
+						super();
+
+						this.uuid = Utils.generateID();
+						this.render();
 					}
-				}
-			};
 
-			//Expose extra data
-			bind(args);
-			args["data"] = this.data;
-			args["uuid"] = this.uuid;
-			for (const key in this.container.dataset) {
-				args[key] = this.container.dataset[key];
-			}
+					/**
+					 * Renders the view element
+					 */
+					public render() {
+						//Debounce render execution
+						clearTimeout(this.renderHandle);
+						this.renderHandle = setTimeout(() => {
+							cancelAnimationFrame(this.reflectionHandle || -1);
+							const args: Record<string, any> = {
+								uuid: this.uuid
+							};
 
-			//Render to the container
-			this.container.innerHTML = template(args);
-			this.rendered = true;
-		}
+							//Expose dataset attribute
+							for (const key in this.dataset) {
+								args[key] = this.dataset[key];
+							}
 
-		/**
-		 * Toggles visibility of view's container
-		 * @param visible Container visibility
-		 */
-		public toggle(visible: boolean | null = null): void {
-			if (!this.container) return;
+							//Render view
+							this.innerHTML = template(args);
+						});
+					}
 
-			if (visible == null) {
-				if (this.container.style.display === "none") {
-					visible = true;
-				} else {
-					visible = false;
-				}
-			}
+					/**
+					 * Instant reflect a new value onto the page,
+					 * for simple rendering cases (no expressions etc.)
+					 * @param name Data variable name
+					 * @param value New value
+					 */
+					private reflect(name: string, value: string) {
+						cancelAnimationFrame(this.reflectionHandle || -1);
+						this.reflectionHandle = requestAnimationFrame(
+							async () => {
+								this.querySelectorAll(
+									`data-text[${name}]:not([value])`
+								).forEach(x => (x.textContent = value));
 
-			if (visible) {
-				this.container.style.display =
-					(this.container as any).display || "block";
-			} else {
-				(this.container as any).display = this.container.style.display;
-				this.container.style.display = "none";
-			}
-		}
+								this.querySelectorAll(
+									`data-html[${name}]:not([value])`
+								).forEach(x => (x.innerHTML = value));
+							}
+						);
+					}
 
-		/**
-		 * Clears the container on component close
-		 */
-		public close(): void {
-			if (!this.container) return;
-			this.container.innerHTML = "";
-		}
+					private static get observedAttributes() {
+						return dataPoints.map(x => `data-${x}`);
+					}
 
-		/**
-		 * Data proxy for placeholders
-		 */
-		private get data(): Record<string, string> {
-			const handler = {
-				get: (object: { _: string }, property: any): any => {
-					if (
-						property == Symbol.toPrimitive ||
-						property == "toJSON" ||
-						property == "toString"
+					private attributeChangedCallback(
+						name: string,
+						oldValue: string,
+						newValue: string
 					) {
-						return (): string =>
-							`<placeholder ${object._}><!--"placeholders __postfix_${object._}="--></placeholder>`;
+						this.render();
+						if (!name) return;
+						this.reflect(name.replace("data-", ""), newValue);
 					}
-
-					const newObject = {
-						_: (object._ ? object._ + "." : "") + property
-					};
-					return new Proxy(newObject, handler);
 				}
-			};
+			);
+		}
 
-			return new Proxy({ _: "" }, handler);
+		/**
+		 * No relations for general view component
+		 */
+		public static get relations(): object[] {
+			return [];
 		}
 	}
 
 	//Return controller with specific typings
 	return View;
 }
+
+export type ViewElement = HTMLElement & {
+	/** Renders the view element */
+	render: () => void;
+	/**View's universal unique id */
+	readonly uuid: string;
+};

@@ -2,361 +2,664 @@
  * Class for 2-Way data binding
  */
 export default class Binding {
+	/**All the tracked binding elements */
+	private elements: Map<string, Set<HTMLElement>>;
+	/**All the loop templates */
+	private templates: Map<string, Set<HTMLTemplateElement>>;
+	/**Main container of the binding object */
 	private container: HTMLElement;
-	private placeholders: Placeholders;
-	private binds: Map<string, Set<HTMLInputElement>>;
-	private loops: Map<string, Set<HTMLTemplateElement>>;
-	private data: any;
-	private removedEvent: Event;
+	/**Cached data inside the binding object */
+	private data: IData;
+	/**Observer of any changes within binding container */
+	private observer: MutationObserver;
+	/**Handles all mutations for the observer */
+	private handler: MutationCallback;
 
 	/**
 	 * Creates binding on a container
 	 * @param container Managed container
 	 */
 	public constructor(container: HTMLElement) {
-		this.removedEvent = new Event("removed");
-		this.placeholders = new Map();
 		this.container = container;
-		this.loops = new Map();
-		this.binds = new Map();
+		this.templates = new Map();
+		this.elements = new Map();
 		this.data = {};
-	}
 
-	/**
-	 * Registers data binding for the container
-	 */
-	public bind(): void {
-		const placeholders = this.container.querySelectorAll(
-			"placeholder"
-		) as NodeListOf<HTMLElement>;
-		const attribholders = this.container.querySelectorAll(
-			"[placeholders]"
-		) as NodeListOf<HTMLElement>;
-		const loops = this.container.querySelectorAll(
-			"[iterate]"
-		) as NodeListOf<HTMLElement>;
-		const binds = this.container.querySelectorAll(
-			"input[bind]"
-		) as NodeListOf<HTMLInputElement>;
+		this.updateElements(container.querySelectorAll(`[bind]`), true);
 
-		loops.forEach(this.bindLoop.bind(this));
-		attribholders.forEach(this.bindAttribute.bind(this));
-		placeholders.forEach(this.bindElement.bind(this));
-		binds.forEach(this.bindInput.bind(this));
-	}
-
-	/**
-	 * Registers element as binded by path
-	 * @param path Element path
-	 * @param element Element
-	 * @param prefix String before variable
-	 * @param postfix String after variable
-	 */
-	private register(
-		path: string,
-		element: HTMLElement | Attr,
-		prefix: string = "",
-		postfix: string = ""
-	): void {
-		let container = element;
-		if (element instanceof Attr) {
-			container = element.ownerElement as HTMLElement;
-		}
-
-		if (!this.container.contains(container)) return;
-
-		if (!this.placeholders.has(path)) {
-			this.placeholders.set(path, new Set());
-		}
-
-		const placeholder = { prefix, postfix, element };
-		this.placeholders.get(path)?.add(placeholder);
-
-		container.addEventListener("removed", () => {
-			this.placeholders.get(path)?.delete(placeholder);
-		});
-	}
-
-	/**
-	 * Binds element
-	 * @param element Placeholder element
-	 */
-	private bindElement(element: HTMLElement): void {
-		const path = element.attributes.item(0)?.name;
-		if (!path || !this.container.contains(element)) return;
-
-		this.register(path, element);
-		element.innerHTML = "";
-
-		if ((element as any).observed) return;
-		const observer = new MutationObserver(mutationList => {
-			const mutation = mutationList[mutationList.length - 1];
-
-			const value = mutation.addedNodes[0]?.textContent || "";
-			if (!value) return;
-			const path = (mutation.target as HTMLElement).attributes[0].name;
-			this.set(path, value);
-		});
-		observer.observe(element, { childList: true });
-		(element as any).observed = true;
-	}
-
-	/**
-	 * Binds element's attributes
-	 * @param element Element with placeholder attribute
-	 */
-	private bindAttribute(element: HTMLElement): void {
-		const attr = element.getAttributeNode("placeholders");
-		if (!attr) return;
-
-		//Parse predefined placeholder
-		if (attr.value != "") {
-			const binds = attr.value.split(";");
-			for (const bind of binds) {
-				if (!bind) continue;
-				const parts = bind.split(":");
-				const attribute = element.getAttributeNode(parts[0]);
-				const path = parts[1];
-
-				if (!path || !attribute) return;
-
-				const prefix = element.getAttribute("_" + attribute.name) || "";
-				const postfix =
-					element.getAttribute(attribute.name + "_") || "";
-
-				this.register(path, attribute, prefix, postfix);
-			}
-			return;
-		}
-
-		//Define new placeholder
-		attr.value = "";
-		const attributes = element.attributes;
-		for (const attribute of attributes) {
-			const match = attribute.value.match(
-				/^(.*)<placeholder ([\w.]+)><!--/
-			);
-			if (!match) continue;
-
-			const path = match[2];
-			const prefix = match[1] || "";
-			const postfix =
-				element.getAttribute(`__postfix_${path}`)?.slice(17) || "";
-
-			if (prefix) {
-				element.setAttribute("_" + attribute.name, prefix);
-			}
-			if (postfix) {
-				element.setAttribute(attribute.name + "_", postfix);
-			}
-
-			attribute.value = prefix + postfix;
-			attr.value += `${attribute.name}:${path};`;
-			this.register(path, attribute, prefix, postfix);
-
-			element.removeAttribute(`__postfix_${path}`);
-		}
-
-		if ((element as any).observed) return;
-		const observer = new MutationObserver(mutationList => {
-			const mutation = mutationList[mutationList.length - 1];
-
-			const name = mutation.attributeName;
-			if (!name) return;
-			let value = element.getAttribute(name);
-			if (!value) return;
-			const postfix = element.getAttribute(name + "_") || "";
-			const prefix = element.getAttribute("_" + name) || "";
-			value = value.slice(prefix.length, value.length - postfix.length);
-
-			let path = null;
-			const parts = element.getAttribute("placeholders")?.split(";");
-			if (!parts) return;
-			for (const part of parts) {
-				if (part.split(":")[0] == name) {
-					path = part.split(":")[1];
+		this.handler = (mutationsList, observer): void => {
+			for (const mutation of mutationsList) {
+				//Add deleted/add node in elemets
+				if (mutation.type === "childList") {
+					this.updateElements(mutation.addedNodes, true);
+					this.updateElements(mutation.removedNodes, false);
 				}
-			}
-			if (!path) return;
-			this.set(path, value);
-		});
-		observer.observe(element, { attributes: true });
-		(element as any).observed = true;
-	}
+				//Update the value if an attribute has been changed
+				else if (mutation.type === "attributes") {
+					if (!mutation.attributeName?.startsWith("bind-")) continue;
+					if (
+						mutation.target.nodeType == Node.ELEMENT_NODE &&
+						(mutation.target as HTMLElement).tagName ==
+							"TEMPLATE" &&
+						(mutation.target as HTMLElement).hasAttribute("each")
+					) {
+						continue;
+					}
 
-	/**
-	 * Binds input element
-	 * @param element Input element
-	 */
-	private bindInput(element: HTMLInputElement): void {
-		const attr = element.getAttributeNode("bind");
-		if (!attr?.value.startsWith("data.")) return;
-		if (!this.container.contains(element)) return;
-		const path = attr.value.slice(5);
-		attr.value = path;
+					const path = mutation.attributeName.replace("bind-", "");
+					const value = (mutation.target as HTMLElement).getAttribute(
+						`bind-${path}`
+					);
 
-		const handler = (): void => {
-			if (["radio", "checkbox"].includes(element.type)) {
-				this.set(path, element.checked);
-			} else {
-				this.set(path, element.value);
+					if (mutation.oldValue != value) {
+						this.updateData(path, value || "");
+					}
+				}
 			}
 		};
 
-		if (element.type == "radio") {
-			const adjacents = this.container.querySelectorAll(
-				`input[type="radio"][name="${element.name}"]`
+		//Observe changes in the container
+		this.observer = new MutationObserver(this.handler);
+		this.observer.observe(this.container, {
+			attributes: true,
+			childList: true,
+			subtree: true,
+			attributeOldValue: true
+		});
+	}
+
+	/**
+	 * Performs all necessary updates on newly added/removed elements
+	 * @param elements Elements to update
+	 * @param add Were elements added(true) or removed(false)
+	 */
+	private updateElements(elements: NodeList, add: boolean): void {
+		const renders: [HTMLElement, string][] = [];
+		const changes: [string, string][] = [];
+
+		(elements as NodeListOf<HTMLElement>).forEach(x => {
+			if (x.nodeType !== x.ELEMENT_NODE) return;
+			if (!x.hasAttribute("bind")) {
+				this.updateElements(x.childNodes, add);
+				return;
+			}
+			const paths: string[] = [];
+
+			if (x.tagName == "TEMPLATE" && x.hasAttribute("each")) {
+				const bind = x.getAttribute("bind");
+				if (!bind) return;
+				const elements = this.templates.get(bind) || new Set();
+				if (add) {
+					elements.add(x as HTMLTemplateElement);
+				} else {
+					elements.delete(x as HTMLTemplateElement);
+				}
+				this.templates.set(bind, elements);
+
+				try {
+					const data =
+						this.get(bind) ||
+						JSON.parse(x.getAttribute(`bind-${bind}`) || "null");
+					if (data != null) {
+						this.set(bind, data);
+						x.removeAttribute(`bind-${bind}`);
+					}
+				} catch {
+					//Do nothing
+				}
+				return;
+			}
+
+			for (const attr of x.attributes) {
+				let name = attr.name;
+				if (!name.startsWith("bind-")) continue;
+				name = name.replace("bind-", "");
+				paths.push(name);
+
+				const elements = this.elements.get(name) || new Set();
+				if (add) {
+					try {
+						//Update changes to the data
+						const data = this.get(name);
+						if (data != null) {
+							attr.value =
+								typeof data == "string"
+									? data
+									: JSON.stringify(data);
+						} else {
+							changes.push([attr.value || "", name]);
+						}
+					} catch {
+						//Trying to access a string path
+					}
+
+					renders.push([x, name]);
+					elements.add(x);
+				} else {
+					elements.delete(x);
+				}
+
+				this.elements.set(name, elements);
+			}
+
+			//Evaluate constant binds
+			if (paths.length <= 0 && add) {
+				renders.push([x, ""]);
+			}
+
+			//Register input events
+			if (paths.length && x instanceof HTMLInputElement) {
+				let timeout = -1;
+				const handler = (): void => {
+					clearTimeout(timeout);
+					timeout = setTimeout(() => {
+						const checker = ["radio", "checkbox"].includes(x.type);
+						const value = checker
+							? x.checked
+								? "true"
+								: ""
+							: x.value;
+
+						//Update only paths that affect the value
+						const exp = JSON.parse(x.getAttribute("bind") || "{}")[
+							checker ? "checked" : "value"
+						] as string;
+						if (!exp) return;
+
+						paths.forEach(path => {
+							const valExp = exp.replace(
+								this.varRegex(path),
+								`"${value
+									.replace(/"/g, '\\"')
+									.replace(/\\/g, "\\\\")}"`
+							);
+							if (exp == valExp) return;
+							this.set(path, eval(valExp));
+						});
+					});
+				};
+
+				if (add) {
+					if (x.type == "radio") {
+						this.container
+							.querySelectorAll(
+								`input[type="radio"][name="${x.name}"]`
+							)
+							.forEach(y => y.addEventListener("input", handler));
+					} else {
+						x.addEventListener("input", handler);
+					}
+				}
+			}
+
+			this.updateElements(x.childNodes, add);
+		});
+
+		if (!add) return;
+
+		changes.sort((a, b) => (a[1] < b[1] ? -1 : a[1] == b[1] ? 0 : 1));
+		renders.sort((a, b) => (a[1] < b[1] ? -1 : a[1] == b[1] ? 0 : 1));
+
+		changes.forEach(([value, path]) => this.updateData(path, value));
+		renders.forEach(([element, path]) => this.updateElement(element, path));
+	}
+
+	/**
+	 * Returns a regex for finding variable in a string
+	 * @param variable Variable to find
+	 * @param precise Precise mode, accounting for all the quoting
+	 */
+	private varRegex(variable: string, precise = false): RegExp {
+		if (precise) {
+			return new RegExp(
+				`(?<=^([^\`]*\`[^\`]*\`)*[^\`]*(\`[^\`]*\\\${[^}]*?)?)(?<=^|[^A-Za-z0-9_$.])${variable}(?=$|[^A-Za-z0-9_$])(?=([^"]*"[^"]*")*[^"]*$)(?=([^']*'[^']*')*[^']*$)`,
+				"gi"
 			);
-
-			adjacents.forEach(radio => {
-				radio.addEventListener("input", handler);
-			});
-		} else {
-			element.addEventListener("input", handler);
 		}
 
-		handler();
-
-		if (!this.binds.has(path)) {
-			this.binds.set(path, new Set());
-		}
-
-		this.binds.get(path)?.add(element);
-		element.addEventListener("removed", () => {
-			this.binds.get(path)?.delete(element);
-		});
+		return new RegExp(
+			`(?<=^|[^A-Za-z0-9_$.])${variable}(?=$|[^A-Za-z0-9_$])`,
+			"gi"
+		);
 	}
 
 	/**
-	 * Binds elements which are use as loops
-	 * @param element Element with "iterate" attribute
+	 * Creates an evaluation scope from element's attributes
+	 * @param attributes Attributes of the reference scope element
 	 */
-	private bindLoop(element: HTMLElement): void {
-		const through = element.getAttributeNode("iterate");
-		if (!through || !this.container.contains(element)) return;
-		through.value = through.value.replace("data.", "");
+	private createScope(attributes: NamedNodeMap): [string, string] {
+		let expression = attributes.getNamedItem("bind")?.value;
+		if (!expression) return ["", ""];
 
-		const template = document.createElement("template");
-		template.content.appendChild(element.cloneNode(true));
-		element.parentNode?.replaceChild(template, element);
+		let scope = "";
+		for (const attr of attributes) {
+			let name = attr.name;
+			if (!name.startsWith("bind-")) continue;
+			name = name.replace("bind-", "");
+			if (expression && !expression.match(this.varRegex(name))) {
+				continue;
+			}
+			if (expression) {
+				expression = expression.replace(
+					this.varRegex(name),
+					name
+						.replace(/\./g, "_")
+						.replace(/-/g, "__")
+						.toLowerCase()
+				);
+			}
 
-		if (!this.loops.has(through.value)) {
-			this.loops.set(through.value, new Set());
+			const data = this.get(name);
+			scope += `const ${name.replace(/\./g, "_").replace(/-/g, "__")}='${(
+				(typeof data == "string" ? data : JSON.stringify(data)) || ""
+			)
+				.replace(/'/g, "\\'")
+				.replace(/\\/g, "\\\\")}';`;
 		}
 
-		this.loops.get(through.value)?.add(template);
-		template.addEventListener("removed", () => {
-			this.loops.get(through.value)?.delete(template);
-		});
+		return [expression, scope];
 	}
 
 	/**
-	 * Creates a new loop element based on loop template
-	 * @param path Loop path
-	 * @param index Element index
+	 * Converts any object to IData string only object
+	 * @param object Any normal object
 	 */
-	private createLoopElement(
+	private makeDataObject(object: Record<string, any>): IData {
+		object = Object.assign({}, object);
+		for (const key in object) {
+			if (typeof object[key] == "object") {
+				object[key] = this.makeDataObject(object[key]);
+			} else {
+				object[key] = object[key]?.toString() || "";
+			}
+		}
+
+		return object;
+	}
+
+	/**
+	 * Updates the layout of all the template loop elements
+	 * @param element Template loop element
+	 * @param path Path to updating object
+	 * @param value Updating object
+	 */
+	private updateLoop(
 		element: HTMLTemplateElement,
-		index: number
+		path: string,
+		value: Record<string, any> | string
 	): void {
-		const content = element.content.firstElementChild;
-		if (!content) return;
-		const through = content.getAttribute("iterate");
-		if (!through) return;
+		if (typeof value == "string") value = {};
+		const iterable = element.getAttribute("value");
+		const index = element.getAttribute("key");
+		const existing = new Set() as Set<string>;
+		const keys = Object.keys(value);
 
-		const node = content.cloneNode(true) as HTMLElement;
+		//Remove not needed elements
+		let current: HTMLElement;
+		let next = element.nextSibling as HTMLElement;
+		while (next) {
+			current = next;
+			next = current.nextSibling as HTMLElement;
+			if (current.nodeType != current.ELEMENT_NODE) continue;
 
-		//Find new elements
-		const placeholders = node.querySelectorAll("placeholder") as NodeListOf<
-			HTMLElement
-		>;
-		const attributes = node.querySelectorAll(
-			"[placeholders]"
-		) as NodeListOf<HTMLElement>;
-		const loops = node.querySelectorAll("[iterate]") as NodeListOf<
-			HTMLElement
-		>;
-		const binds = node.querySelectorAll("[bind]") as NodeListOf<
-			HTMLInputElement
-		>;
+			const one = current.getAttribute("one")?.toLowerCase();
+			if (!one || !one.startsWith(path) || one == path) continue;
 
-		//Parse inner placeholders
-		placeholders.forEach(placeholder => {
-			const attr = placeholder.attributes[0].name;
-			const newAttr = attr.replace(through, `${through}.${index}`);
-
-			placeholder.removeAttribute(attr);
-			placeholder.setAttribute(newAttr, "");
-
-			this.bindElement(placeholder as HTMLElement);
-		});
-		//Parse inner attributes
-		attributes.forEach(attribute => {
-			//Use bind here to parse raw attribute data
-			this.bindAttribute(attribute);
-			let attr = attribute.getAttribute("placeholders");
-			if (!attr) return;
-			const pattern = (":" + through).replace(
-				/[.*+\-?^${}()|[\]\\]/g,
-				"\\$&"
-			);
-			attr = attr.replace(
-				new RegExp(pattern, "g"),
-				`:${through}.${index}`
-			);
-
-			attribute.setAttribute("placeholders", attr);
-		});
-		//Parse inner loops
-		loops.forEach(special => {
-			let attr = special.getAttribute("iterate") || "";
-			attr = attr.replace(through, `${through}.${index}`);
-			special.setAttribute("iterate", attr);
-		});
-		//Parse inner binds
-		binds.forEach(special => {
-			let attr = special.getAttribute("bind") || "";
-			attr = attr.replace(through, `${through}.${index}`);
-			special.setAttribute("bind", attr);
-		});
-		//Parse self attribute
-		this.bindAttribute(node);
-		let attr = node.getAttribute("placeholders");
-		if (attr) {
-			const pattern = (":" + through).replace(
-				/[.*+\-?^${}()|[\]\\]/g,
-				"\\$&"
-			);
-			attr = attr.replace(
-				new RegExp(pattern, "g"),
-				`:${through}.${index}`
-			);
-			node.setAttribute("placeholders", attr);
+			const key = one.replace(`${path}.`, "");
+			if (keys.includes(key)) {
+				existing.add(key);
+			} else {
+				current.remove();
+			}
 		}
 
-		//Insert loop element
-		element.parentNode?.insertBefore(node, element);
+		const selectWithTemplates = (
+			element: Element | DocumentFragment,
+			iterable: string | null,
+			index: string | null
+		): Element[] => {
+			const results = [...element.querySelectorAll("[bind], [each]")];
+			results.filter(x =>
+				[...x.attributes].find(
+					a =>
+						a.name.startsWith(`bind-${iterable}`) ||
+						a.name == `bind-${index}` ||
+						a.name == "each"
+				)
+			);
 
-		//Bind new elements
-		loops.forEach(this.bindLoop.bind(this));
-		binds.forEach(this.bindInput.bind(this));
-		attributes.forEach(this.bindAttribute.bind(this));
-		placeholders.forEach(this.bindElement.bind(this));
-		this.bindAttribute(node);
+			element.querySelectorAll("template").forEach(x => {
+				results.push(
+					...selectWithTemplates(x.content, iterable, index)
+				);
+			});
+
+			return results;
+		};
+
+		//Add new elements
+		current = element;
+		const map = new Map<Element, string>();
+		const node = element.content.cloneNode(true) as HTMLElement;
+		const step = node.childNodes.length;
+		const iterables = selectWithTemplates(node, iterable, index);
+
+		//Prepare iterables for changes
+		iterables.forEach(x => {
+			(x as any).indexOnly = true;
+			for (const attr of x.attributes) {
+				if (attr.name.startsWith(`bind-${iterable}`)) {
+					(x as any).indexOnly = false;
+				}
+			}
+
+			x.removeAttribute(`bind-${index}`);
+			map.set(x, x.getAttribute("bind") || "");
+		});
+
+		//Make sure that an element exist for each key
+		for (const key of keys) {
+			//Skip existing elements
+			if (existing.has(key)) {
+				for (let i = 0; i < step; i++) {
+					current = (current.nextSibling as HTMLElement) || current;
+				}
+				continue;
+			}
+
+			//Dynamicly replace node's content keys
+			iterables.forEach(x => {
+				let expression = map.get(x);
+				if (!expression || !iterable) return;
+
+				try {
+					//For JSON encoded attributes
+					const object = JSON.parse(expression);
+					if (typeof object != "object") throw "";
+
+					for (const i in object) {
+						object[i] = object[i].replace(
+							this.varRegex(iterable, true),
+							`${path}.${key}`
+						);
+						if (!index) continue;
+						object[i] = object[i].replace(
+							this.varRegex(index, true),
+							`"${key}"`
+						);
+					}
+
+					expression = JSON.stringify(object);
+				} catch {
+					//For a normal content expression
+					expression = expression.replace(
+						this.varRegex(iterable, true),
+						`${path}.${key}`
+					);
+					if (index) {
+						expression = expression.replace(
+							this.varRegex(index, true),
+							`"${key}"`
+						);
+					}
+				}
+
+				x.setAttribute("bind", expression);
+				if (x.tagName === "TEMPLATE" && x.hasAttribute("each")) return;
+				if ((x as any).indexOnly) return;
+				try {
+					//Replace all the attributes
+					for (const attr of x.attributes) {
+						if (attr.name.startsWith(`bind-${iterable}`)) {
+							const name = attr.name.replace(
+								`bind-${iterable}`,
+								`bind-${path}.${key}`
+							);
+							x.setAttribute(name, "");
+							x.removeAttribute(attr.name);
+						}
+					}
+				} catch (error) {
+					if (error instanceof DOMException) {
+						throw new Error(
+							`"${key}" is an unacceptable binding key!`
+						);
+					}
+				}
+			});
+
+			//Insert a new element
+			for (let child of node.childNodes) {
+				//Wrap any text in a span
+				if (child.nodeType == child.TEXT_NODE) {
+					const span = document.createElement("span");
+					span.textContent = child.textContent;
+					child = span;
+				}
+
+				current =
+					(current.insertAdjacentElement(
+						"afterend",
+						child.cloneNode(true) as HTMLElement
+					) as HTMLElement) || current;
+				current.setAttribute("one", `${path}.${key}`);
+			}
+
+			//Clean up the template
+			iterables.forEach(x => {
+				//Replace back all the attributes
+				for (const attr of x.attributes) {
+					if (attr.name.startsWith(`bind-${path}.${key}`)) {
+						const name = attr.name.replace(
+							`bind-${path}.${key}`,
+							`bind-${iterable}`
+						);
+						x.setAttribute(name, "");
+						x.removeAttribute(attr.name);
+					}
+				}
+				const backup = map.get(x);
+				if (!backup) return;
+				x.setAttribute("bind", backup);
+			});
+		}
+
+		//Force update the observer before next call
+		const records = this.observer.takeRecords();
+		this.handler(records, this.observer);
+	}
+
+	/**
+	 * Updates all the binded content of a single given element
+	 * @param element Element to update
+	 * @param path Data path to update
+	 * @param data Optional data value, will be used as cache to avoid recompution
+	 */
+	private updateElement(
+		element: HTMLElement,
+		path: string,
+		data?: IData | string
+	): void {
+		const tag = element.tagName;
+		const [expression, scope] = this.createScope(element.attributes);
+
+		if (tag == "DATA-TEXT" || tag == "DATA-HTML") {
+			//Data elements
+			this.updateContent(
+				element,
+				expression || path.replace(/\./g, "_"),
+				scope
+			);
+		} else {
+			//Attributes
+			this.updateAttributes(element, expression, scope);
+		}
+
+		if (!path) return;
+		data = data || this.get(path);
+		element.setAttribute(
+			`bind-${path}`,
+			typeof data == "string" ? data : JSON.stringify(data)
+		);
+	}
+
+	/**
+	 * Updates element's content with current data
+	 * @param element Element to update
+	 * @param expression Expression to update with
+	 * @param scope Scope string to eval with depending variables
+	 */
+	private updateContent(
+		element: HTMLElement,
+		expression: string | null,
+		scope: string
+	): void {
+		//Evaluate the value
+		const result = (function(): string {
+			return eval(scope + `(${expression})`);
+		})();
+
+		//Insert content
+		if (element.tagName == "DATA-TEXT") {
+			element.textContent = result;
+		} else if (element.tagName == "DATA-HTML") {
+			element.innerHTML = result;
+		}
+	}
+
+	/**
+	 * Updates element's attributes with current data
+	 * @param element Element to update
+	 * @param expression Expression to update with
+	 * @param scope Scope string to eval with depending variables
+	 */
+	private updateAttributes(
+		element: HTMLElement,
+		expression: string | null,
+		scope: string
+	): void {
+		//Parse expression
+		let expressions;
+		try {
+			expressions = JSON.parse(expression || "null") as Record<
+				string,
+				string
+			>;
+		} catch {
+			throw new Error(
+				`Malformed JSON bind expression '${expression}' on element '${element}'`
+			);
+		}
+		if (typeof expressions != "object") return;
+
+		//Iterate through the all binded attributes
+		for (const attr in expressions) {
+			let exp = expressions[attr];
+
+			//Parse style
+			let isStyle = false;
+			if (exp.startsWith("pug.style(")) {
+				isStyle = true;
+				exp = exp.slice(0, exp.length - 1).replace("pug.style(", "");
+			}
+
+			//Evaluate the value
+			const result = (function(): any {
+				return eval(scope + `(${exp})`);
+			})();
+
+			//Apply the value
+			if (isStyle) {
+				//Support for style-as-object syntax
+				if (typeof result == "object") {
+					for (const prop in result) {
+						element.style[prop as any] = result[prop];
+					}
+				} else {
+					element.style.cssText = result.toString();
+				}
+			} else {
+				if (result === "" || result === false || result == null) {
+					element.removeAttribute(attr);
+				} else {
+					element.setAttribute(attr, result.toString());
+				}
+
+				if (attr.toLowerCase() == "value") {
+					(element as any).value = result.toString();
+				}
+				if (attr.toLowerCase() == "checked") {
+					(element as any).checked = !!result;
+				}
+			}
+		}
+	}
+
+	/**
+	 * Updates the data at a given path to a new value
+	 * @param path Data's path
+	 * @param value New data value
+	 */
+	private updateData(
+		path: string,
+		value?: IData | string
+	): [boolean, string | IData] {
+		//Parse the path
+		let object: IData | string = this.data;
+		const parts = path.split(".");
+		const last = parts.pop() as string;
+		for (const prop of parts) {
+			if (typeof object[prop] !== "object") object[prop] = {};
+			object = object[prop] as IData;
+		}
+		const dest = object[last];
+
+		if (value == undefined) return [false, dest];
+
+		//Parse non object types
+		if (typeof value != "object") {
+			value = (value?.toString() || "") as string;
+			//When trying to override object
+			if (typeof dest === "object") {
+				try {
+					const parsed = JSON.parse(value);
+					if (typeof parsed === "object") {
+						value = parsed;
+					} else {
+						throw "";
+					}
+				} catch {
+					//Do nothing
+				}
+			}
+		}
+
+		const diff = JSON.stringify(object[last]) === JSON.stringify(value);
+		if (diff) return [false, dest];
+
+		object[last] = value as IData | string;
+		return [true, object[last]];
 	}
 
 	/**
 	 * Gets binded property
 	 * @param path Property's path
 	 */
-	public get(path?: string): any {
+	public get(path?: string): IData | string {
 		if (!path) return this.data;
+		path = path.toLowerCase();
 
-		let object: any = this.data;
+		let object: IData | string = this.data;
 		const parts = path.split(".");
 		for (const prop of parts) {
-			if (object[prop] === undefined) object[prop] = {};
+			if (typeof object == "string") {
+				throw new TypeError(
+					`Cannot read property '${prop}' of ${object.toString()} at path '${path}'`
+				);
+			}
+
 			object = object[prop];
+			if (object === undefined) break;
 		}
 
 		return object;
@@ -366,123 +669,75 @@ export default class Binding {
 	 * Sets binded property
 	 * @param path Property's path
 	 * @param value New property's value
+	 * @param mode A mode for value to be set
 	 */
-	public set(path: string, value: any, html: boolean = false): boolean {
-		let changed = false;
+	public set(path: string, value?: any, mode = SetMode.Normal): void {
+		//Normalize the input
+		path = path.toLowerCase();
+		value = typeof value == "object" ? this.makeDataObject(value) : value;
+		if (value === false) value = "";
+		let old;
+		try {
+			old = this.get(path);
+		} catch {
+			old = undefined;
+		}
+		const keys =
+			typeof old === "object" ? new Set(Object.keys(old)) : new Set();
 
-		//Update nested objects
-		if (typeof value == "object") {
-			//Process array
-			const loops = this.loops.get(path) || [];
-			if (Array.isArray(value)) {
-				//Remove unnecessary elements
-				for (const loop of loops) {
-					let node = loop.previousElementSibling;
-					while (node) {
-						const sibling = node.previousElementSibling;
-						if (node.getAttribute("iterate") == path) {
-							node.remove();
-							node.querySelectorAll(
-								"template,placeholder,[placeholders],[bind]"
-							).forEach(x => {
-								x.dispatchEvent(this.removedEvent);
-							});
-						}
-						node = sibling;
-					}
-				}
-			}
-			for (const key in value) {
-				if (Array.isArray(value)) {
-					for (const loop of loops) {
-						this.createLoopElement(loop, +key);
-					}
-				}
+		//Update the data
+		const [changed, data] = this.updateData(
+			path,
+			mode === SetMode.Recursive ? undefined : value
+		);
+		if (mode === SetMode.Normal && changed === null) return;
 
-				changed =
-					this.set(path + "." + key, value[key], html) || changed;
-			}
-
-			return changed;
+		//Recursive remap for objects
+		if (typeof data == "object" || typeof old == "object") {
+			//Update loop elements
+			this.templates.get(path)?.forEach(x => {
+				this.updateLoop(x, path, data);
+			});
 		}
 
-		//Update binded elements
-		this.binds.get(path)?.forEach(binding => {
-			if (binding.getAttribute("bind") === path) {
-				if (["radio", "checkbox"].includes(binding.type)) {
-					if (
-						(binding.checked != value) === true ||
-						value == "true"
-					) {
-						binding.checked = value === true || value == "true";
-						if (binding.value == value) {
-							binding.dispatchEvent(new Event("input"));
-							changed = true;
-						}
-					}
-				} else if (binding.value != value.toString()) {
-					binding.value = value as string;
-					if (binding.value == value) {
-						binding.dispatchEvent(new Event("input"));
-						changed = true;
-					}
-				}
-			}
-		});
+		//Update all the elements
+		this.elements
+			.get(path)
+			?.forEach(x => this.updateElement(x, path, data));
 
-		//Update placeholders
-		const placeholders = this.placeholders.get(path);
-		placeholders?.forEach(placeholder => {
-			const text = placeholder.prefix + value + placeholder.postfix;
-			const element = placeholder.element;
-			if (element instanceof Attr) {
-				if (element.nodeValue != text) {
-					element.nodeValue = text;
-					changed = true;
-				}
-			} else {
-				if (html) {
-					if (element.innerHTML != text) {
-						element.innerHTML = text;
-						changed = true;
-					}
-				} else {
-					if (element.textContent != text) {
-						element.textContent = text;
-						changed = true;
-					}
-				}
-			}
-		});
+		//Perform recursive update
+		keys.forEach(key => this.set(path + "." + key, "", SetMode.Recursive));
 
-		//Update data value
-		if (value !== undefined) {
-			let object: any = this.data;
-			const parts = path.split(".");
-			const last = parts.pop();
-			if (last) {
-				for (const prop of parts) {
-					if (typeof object[prop] !== "object") object[prop] = {};
-					object = object[prop];
-				}
-				object[last] = value.toString();
-			}
+		//Update parent
+		if (mode == SetMode.Recursive) return;
+		const index = path.lastIndexOf(".");
+		if (index != -1) {
+			this.set(path.substring(0, index));
 		}
+	}
 
-		return changed;
+	/**
+	 * Closes and disconnects binding from the container
+	 */
+	public close(): void {
+		this.data = {};
+		this.elements = new Map();
+		this.observer.disconnect();
 	}
 }
 
 /**
- * Placeholders type
+ * Binded data cache interface
  */
-export type Placeholders = Map<string, Set<IPlaceholder>>;
+interface IData {
+	[prop: string]: IData | string;
+}
 
 /**
- * Placeholder interface
+ * Data setting mode
  */
-export interface IPlaceholder {
-	prefix: string;
-	postfix: string;
-	element: HTMLElement | Attr;
+enum SetMode {
+	Normal,
+	Force,
+	Recursive
 }

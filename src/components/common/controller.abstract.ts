@@ -20,8 +20,6 @@ export default function Controller<T extends string>() {
 		public readonly name: string;
 		/**Callbacks storage */
 		private callbacks: { [type: string]: Function[] } = {};
-		/**Whether to escape html in data binding */
-		public safe: boolean = true;
 		/**Exposer object */
 		private exposer: Exposer;
 		/**Relation reference */
@@ -37,7 +35,7 @@ export default function Controller<T extends string>() {
 			this.name = this.constructor.name;
 			this.exposer = exposer;
 			this.relation = relation || null;
-			this.binding = null;
+			this.binding = relation ? new Binding(this.container) : null;
 		}
 
 		/**
@@ -52,19 +50,12 @@ export default function Controller<T extends string>() {
 		}
 
 		/**
-		 * Initializes data binding for the controller
-		 */
-		protected bind(): void {
-			this.binding = new Binding(this.container);
-			this.binding.bind();
-		}
-
-		/**
 		 * Closes the controller
 		 */
 		public close(): void {
 			//Close the controller
 			this.callbacks = {};
+			this.binding?.close();
 		}
 
 		/**
@@ -123,7 +114,9 @@ export default function Controller<T extends string>() {
 		 */
 		protected get data(): Record<string, any> {
 			if (!this.binding) {
-				throw new Error("Use this.bind() to bind your data first!");
+				throw new Error(
+					"The controller is not associated with any container!"
+				);
 			}
 
 			const handler = {
@@ -138,7 +131,7 @@ export default function Controller<T extends string>() {
 						return new Proxy({ ...data, __origin: path }, handler);
 					}
 					if (data === undefined) {
-						return new Proxy({ ...data, __origin: path }, handler);
+						return this.binding?.get(path);
 					}
 
 					return data;
@@ -149,8 +142,7 @@ export default function Controller<T extends string>() {
 						(object.__origin ? object.__origin + "." : "") +
 						property;
 
-					object[property] = value;
-					this.binding.set(path, value, !this.safe);
+					this.binding.set(path, value);
 
 					return true;
 				}
@@ -223,7 +215,7 @@ if (typeof globalThis === "undefined") {
 /**
  * Smart controller shortcut to the nearest controller property in DOM
  */
-(globalThis as any).Controller = new Proxy(
+(globalThis as any).ctrl = new Proxy(
 	{},
 	{
 		get: (obj: {}, prop: string) => {

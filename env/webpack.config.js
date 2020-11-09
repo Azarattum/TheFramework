@@ -72,7 +72,7 @@ module.exports = {
 			},
 			{
 				test: /\.pug$/,
-				use: ["pug-loader"],
+				use: ["./env/view.loader.js", "pug-loader"],
 				include: Path.resolve(__dirname, "../src"),
 				exclude: /node_modules/
 			},

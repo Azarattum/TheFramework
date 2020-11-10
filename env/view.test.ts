@@ -49,6 +49,16 @@ describe("ViewLoader", () => {
 	});
 
 	/**
+	 * Test for loading an empty view
+	 */
+	it("emptyLoad", async () => {
+		const root = await load("");
+
+		expect(root.children.length).toBe(0);
+		expect(root.innerHTML).toBe("");
+	});
+
+	/**
 	 * Test preprocessing for content binding
 	 */
 	it("contentBinding", async () => {
@@ -195,14 +205,16 @@ describe("ViewLoader", () => {
             p(data-test=content[0])
             p(data-test=(content)[1])
             p(data-test=content + ' there"')
-            p(style={"content": content + '"'})
+			p(style={"content": content + '"'})
+			- const hardcoded = "42"
+			p(data-test=hardcoded)
             `.replace(/^ {12}|^\t{3}|\s*$/gm, "")
 		);
 
 		const wrap = (x: string): string => JSON.stringify({ "data-test": x });
 
 		//Simple Test
-		expect(root.children.length).toBe(8);
+		expect(root.children.length).toBe(9);
 		{
 			const child = root.children[0];
 
@@ -313,6 +325,15 @@ describe("ViewLoader", () => {
 				'{"style":"pug.style({\\"content\\": content + \'\\"\'})"}'
 			);
 			expect(attrs?.getNamedItem("bind-content")?.value).toBe('"hello');
+		}
+
+		//Constant attribute
+		{
+			const child = root.children[8];
+
+			expect(child).toBeInstanceOf(HTMLParagraphElement);
+			expect(child.attributes.length).toBe(1);
+			expect(child.getAttribute("data-test")).toBe("42");
 		}
 	});
 

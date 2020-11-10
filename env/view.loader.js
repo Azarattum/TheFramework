@@ -437,10 +437,10 @@ Array.prototype.toString=function (){return JSON.stringify(this);};`
 	);
 
 	//Find all the data points
-	const arguments = source.match(dataExp);
+	const args = source.match(dataExp);
 	let dataPoints = [];
-	if (arguments && arguments.length > 1) {
-		dataPoints = arguments[1].replace(/ /g, "").split(",") || [];
+	if (args && args.length > 1) {
+		dataPoints = args[1].replace(/ /g, "").split(",") || [];
 	}
 	dataPoints = dataPoints.filter(
 		x => !(x in globalThis || reservedKeywords.includes(x))

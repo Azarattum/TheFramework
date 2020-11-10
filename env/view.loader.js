@@ -26,7 +26,7 @@ const attribExp = /pug\.attr\("([^\"]+)", ((.|\s)*?), (true|false), (true|false)
 const arrayExp = /(?<=[A-Za-z0-9_$\]]+)\[(\\\")?(([^\[]*\[[^\]]*\])*[^\[]*?)(\\\")?\]/g;
 const loopStartExp = /;\((function\s*\(\)\s*{)\s*var\s+\$\$obj\s*=\s*([^;]+);\s*(if[^{]+{\s*for\s*\(var\s*(\S+)[^\n]+\s*var\s+(\S+)\s*=)/g;
 const loopEndExp = /(  }\n)(}\))\.call\(this\);/g;
-const variablesExp = /(?<=^(([^`]|(\\`))*(?<!\\)`([^`]|(\\`))*(?<!\\)`)*([^`]|(\\`))*((?<!\\)`([^`]|(\\`))*(?<!\\)\${[^}]*?)?)(?<=^|[^A-Za-z0-9_$.])[A-Za-z_$][A-Za-z0-9_$.]*(?=$|[^A-Za-z0-9_$])(?=(([^"]|(\\"))*(?<!\\)"([^"]|(\\"))*(?<!\\)")*([^"]|(\\"))*$)(?=(([^']|(\\'))*(?<!\\)'([^']|(\\'))*(?<!\\)')*([^']|(\\'))*$)(?=(([^/]|(\\\/))*(?<!\\)\/([^/]|(\\\/))+(?<!\\)\/)*([^/]|(\\\/))*($|\n))(?![A-Za-z0-9_$]*\s*\()/g;
+const variablesExp = /(?<=^|[^A-Za-z0-9_$.])[A-Za-z_$][A-Za-z0-9_$.]*(?=$|[^A-Za-z0-9_$])(?![A-Za-z0-9_$]*\s*\()/g;
 const unescapeExp = /(?<=([a-zA-Z_$0-9]+|\])\[)"\+|\+\"(?=\]($|\[))/g;
 const unescapeJSONExp = /\\\\\\"(\+\(\(typeof[^\\]*)\\\\\\"(undefined)\\\\\\"(\s*\|\|\s*)\\\\\\"([^\\]+)\\\\\\"([^\\]*)\\\\\\"([^\\]+)\\\\\\"([^\\]+)\\\\\\"/g;
 
@@ -99,6 +99,59 @@ const reservedKeywords = [
 ];
 
 /**
+ * Replaces all of the qouted parts of a string.
+ * Supports JS string template literal expressions
+ * @param {string} string String to process
+ * @param {string} replacement Optional replacement for qouted parts
+ */
+function removeQuoted(string, replacement = "") {
+	const quotes = ['"', "'", "`", "/"];
+
+	let balance = -1;
+	let quote = null;
+	let updated = "";
+	for (let i = 0; i < string.length; i++) {
+		const char = string[i];
+		if (char == "\\") {
+			i++;
+			continue;
+		}
+
+		if (balance >= 0) {
+			if (char == "{") balance++;
+			if (char == "}") balance--;
+			if (balance <= -1) {
+				updated += replacement;
+				continue;
+			}
+			updated += char;
+		} else {
+			if (!quote) {
+				if (quotes.includes(char)) {
+					quote = char;
+					updated += replacement;
+					continue;
+				}
+				updated += char;
+			} else {
+				if (char == quote) {
+					quote = null;
+				} else if (
+					quote == "`" &&
+					char == "$" &&
+					string[i + 1] == "{"
+				) {
+					i++;
+					balance = 0;
+				}
+			}
+		}
+	}
+
+	return updated;
+}
+
+/**
  * Returns a regular expression to find each loop start.
  * Only variable loops within datapoints are considered!
  * @param {string[]} dataPoints Data points' names array
@@ -144,7 +197,7 @@ function getLoopDatapoints(source, dataPoints) {
  */
 function unwrapConstants(expression, dataPoints, escape = true) {
 	//Find all strings that look like a variable
-	const variables = [...expression.matchAll(variablesExp)];
+	const variables = [...removeQuoted(expression, " ").matchAll(variablesExp)];
 	let updated = "";
 	let last = 0;
 
@@ -153,7 +206,10 @@ function unwrapConstants(expression, dataPoints, escape = true) {
 		let variable = match[0];
 
 		//Escape everything else
-		let sub = expression.substring(last, match.index);
+		let sub = expression.substring(
+			last,
+			expression.indexOf(match[0], last)
+		);
 		if (escape) sub = sub.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 		updated += sub;
 
@@ -170,7 +226,7 @@ function unwrapConstants(expression, dataPoints, escape = true) {
 
 		//Build a new expression
 		updated += variable;
-		last = match.index + match[0].length;
+		last = expression.indexOf(match[0], last) + match[0].length;
 	}
 	let sub = expression.substring(last, expression.length);
 	if (escape) sub = sub.replace(/\\/g, "\\\\").replace(/"/g, '\\"');

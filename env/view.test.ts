@@ -64,7 +64,7 @@ describe("ViewLoader", () => {
             p #{content.length}
             p #{content[0]}
             p #{(content)[1]}
-            p #{content + " there\\""}
+            p #{content + ' there"'}
             `.replace(/^ {12}|^\t{3}|\s*$/gm, "")
 		);
 
@@ -175,7 +175,7 @@ describe("ViewLoader", () => {
 			const attrs = dataTag?.attributes;
 			expect(attrs).toBeTruthy();
 			expect(attrs?.getNamedItem("bind")?.value).toBe(
-				'content + " there\\""'
+				`content + ' there"'`
 			);
 			expect(attrs?.getNamedItem("bind-content")?.value).toBe('"hello');
 		}
@@ -194,7 +194,7 @@ describe("ViewLoader", () => {
             p(data-test=content.length)
             p(data-test=content[0])
             p(data-test=(content)[1])
-            p(data-test=content + " there\\"")
+            p(data-test=content + ' there"')
             p(style={"content": content + '"'})
             `.replace(/^ {12}|^\t{3}|\s*$/gm, "")
 		);
@@ -293,7 +293,7 @@ describe("ViewLoader", () => {
 			const attrs = child?.attributes;
 			expect(attrs).toBeTruthy();
 			expect(attrs?.getNamedItem("bind")?.value).toBe(
-				wrap('content + " there\\""')
+				wrap(`content + ' there"'`)
 			);
 			expect(attrs?.getNamedItem("bind-content")?.value).toBe('"hello');
 			expect(attrs?.getNamedItem("data-test")?.value).toBe(
@@ -692,7 +692,7 @@ describe("ViewLoader", () => {
 
             - func = () => 2 * 42;
             - num = "10"
-            p="\\"Data: " + Function(\`return (\${func}-\${num})()\`)() + "\\""
+            p='"Data: ' + Function(\`return (\${func}-\${num})()\`)() + '"'
             `.replace(/^ {12}|^\t{3}|\s*$/gm, "")
 		);
 
@@ -716,7 +716,7 @@ describe("ViewLoader", () => {
 			expect(dataTag?.tagName).toBe("DATA-TEXT");
 
 			expect(dataTag?.getAttribute("bind")).toBe(
-				'"\\"Data: " + Function(`return (${"() => 2 * 42"}-${num})()`)() + "\\""'
+				`'"Data: ' + Function(\`return (\${"() => 2 * 42"}-\${num})()\`)() + '"'`
 			);
 			expect(dataTag?.getAttribute("bind-num")).toBe("10");
 		}

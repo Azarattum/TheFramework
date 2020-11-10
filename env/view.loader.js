@@ -26,12 +26,12 @@ const attribExp = /pug\.attr\("([^\"]+)", ((.|\s)*?), (true|false), (true|false)
 const arrayExp = /(?<=[A-Za-z0-9_$\]]+)\[(\\\")?(([^\[]*\[[^\]]*\])*[^\[]*?)(\\\")?\]/g;
 const loopStartExp = /;\((function\s*\(\)\s*{)\s*var\s+\$\$obj\s*=\s*([^;]+);\s*(if[^{]+{\s*for\s*\(var\s*(\S+)[^\n]+\s*var\s+(\S+)\s*=)/g;
 const loopEndExp = /(  }\n)(}\))\.call\(this\);/g;
-const variablesExp = /(?<=^(([^`]|(\\`))*(?<!\\)`([^`]|(\\`))*(?<!\\)`)*([^`]|(\\`))*((?<!\\)`([^`]|(\\`))*\${[^}]*?)?)(?<=^|[^A-Za-z0-9_$.])[A-Za-z_$][A-Za-z0-9_$.]*(?=$|[^A-Za-z0-9_$])(?=(([^"]|(\\"))*(?<!\\)"([^"]|(\\"))*(?<!\\)")*([^"]|(\\"))*$)(?=(([^']|(\\'))*(?<!\\)'([^']|(\\'))*(?<!\\)')*([^']|(\\'))*$)(?![A-Za-z0-9_$]*\s*\()/g;
+const variablesExp = /(?<=^(([^`]|(\\`))*(?<!\\)`([^`]|(\\`))*(?<!\\)`)*([^`]|(\\`))*((?<!\\)`([^`]|(\\`))*\${[^}]*?)?)(?<=^|[^A-Za-z0-9_$.])[A-Za-z_$][A-Za-z0-9_$.]*(?=$|[^A-Za-z0-9_$])(?=(([^"]|(\\"))*(?<!\\)"([^"]|(\\"))*(?<!\\)")*([^"]|(\\"))*$)(?=(([^']|(\\'))*(?<!\\)'([^']|(\\'))*(?<!\\)')*([^']|(\\'))*$)(?=(([^/]|(\\\/))*(?<!\\)\/([^/]|(\\\/))+(?<!\\)\/)*([^/]|(\\\/))*($|\n))(?![A-Za-z0-9_$]*\s*\()/g;
 const unescapeExp = /(?<=([a-zA-Z_$0-9]+|\])\[)"\+|\+\"(?=\]($|\[))/g;
 const unescapeJSONExp = /\\\\\\"(\+\(\(typeof[^\\]*)\\\\\\"(undefined)\\\\\\"(\s*\|\|\s*)\\\\\\"([^\\]+)\\\\\\"([^\\]*)\\\\\\"([^\\]+)\\\\\\"([^\\]+)\\\\\\"/g;
 
 /**
- * JavaScript's reserved keywords' names array
+ * JavaScript's reserved keywords' names array + `pug` module keyword
  */
 const reservedKeywords = [
 	"abstract",
@@ -94,7 +94,8 @@ const reservedKeywords = [
 	"volatile",
 	"while",
 	"with",
-	"yield"
+	"yield",
+	"pug"
 ];
 
 /**
@@ -237,7 +238,7 @@ function processAttributes(source, dataPoints) {
 					// we should compensate for that
 					const unescaped = x.replace(unescapeExp, "");
 
-					updated += `pug.attr("bind-${arrayed}", pug.escape(${unescaped})!=null?pug.escape(${unescaped}):"",true,true)+`;
+					updated += `pug.attr("bind-${arrayed}", ${unescaped}!=null?${unescaped}:"",true,true)+`;
 				});
 			}
 

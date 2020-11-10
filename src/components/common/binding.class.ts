@@ -322,7 +322,8 @@ export default class Binding {
 			results.filter(x =>
 				[...x.attributes].find(
 					a =>
-						a.name.startsWith(`bind-${iterable}`) ||
+						a.name.startsWith(`bind-${iterable}.`) ||
+						a.name == `bind-${iterable}` ||
 						a.name == `bind-${index}` ||
 						a.name == "each"
 				)
@@ -348,7 +349,10 @@ export default class Binding {
 		iterables.forEach(x => {
 			(x as any).indexOnly = true;
 			for (const attr of x.attributes) {
-				if (attr.name.startsWith(`bind-${iterable}`)) {
+				if (
+					attr.name == `bind-${iterable}` ||
+					attr.name.startsWith(`bind-${iterable}.`)
+				) {
 					(x as any).indexOnly = false;
 				}
 			}
@@ -410,7 +414,10 @@ export default class Binding {
 				try {
 					//Replace all the attributes
 					for (const attr of x.attributes) {
-						if (attr.name.startsWith(`bind-${iterable}`)) {
+						if (
+							attr.name == `bind-${iterable}` ||
+							attr.name.startsWith(`bind-${iterable}.`)
+						) {
 							const name = attr.name.replace(
 								`bind-${iterable}`,
 								`bind-${path}.${key}`
@@ -449,7 +456,10 @@ export default class Binding {
 			iterables.forEach(x => {
 				//Replace back all the attributes
 				for (const attr of x.attributes) {
-					if (attr.name.startsWith(`bind-${path}.${key}`)) {
+					if (
+						attr.name == `bind-${path}.${key}` ||
+						attr.name.startsWith(`bind-${path}.${key}.`)
+					) {
 						const name = attr.name.replace(
 							`bind-${path}.${key}`,
 							`bind-${iterable}`

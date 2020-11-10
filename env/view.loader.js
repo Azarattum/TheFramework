@@ -334,7 +334,7 @@ function processLoops(source, dataPoints) {
 	//Define $$tmpl variable
 	source = source.replace(
 		"function template(locals) {",
-		"$&let $$$$tmpl=false; let o=()=>{};"
+		"$&let $$$$tmpl=false;let o=()=>{};let f=()=>{};"
 	);
 
 	//Replace loop functions within datapoints

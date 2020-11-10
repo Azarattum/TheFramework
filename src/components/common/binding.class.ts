@@ -340,25 +340,28 @@ export default class Binding {
 
 		//Add new elements
 		current = element;
-		const map = new Map<Element, string>();
+		const map = new Map<
+			Element,
+			{ bind: string; changes: Map<string, string>; indexOnly: boolean }
+		>();
 		const node = element.content.cloneNode(true) as HTMLElement;
 		const step = node.childNodes.length;
 		const iterables = selectWithTemplates(node, iterable, index);
 
 		//Prepare iterables for changes
 		iterables.forEach(x => {
-			(x as any).indexOnly = true;
-			for (const attr of x.attributes) {
-				if (
-					attr.name == `bind-${iterable}` ||
-					attr.name.startsWith(`bind-${iterable}.`)
-				) {
-					(x as any).indexOnly = false;
-				}
-			}
+			//Save initial state
+			map.set(x, {
+				bind: x.getAttribute("bind") || "",
+				changes: new Map(),
+				indexOnly: ![...x.attributes].find(
+					x =>
+						x.name == `bind-${iterable}` ||
+						x.name.startsWith(`bind-${iterable}.`)
+				)
+			});
 
 			x.removeAttribute(`bind-${index}`);
-			map.set(x, x.getAttribute("bind") || "");
 		});
 
 		//Make sure that an element exist for each key
@@ -373,7 +376,7 @@ export default class Binding {
 
 			//Dynamicly replace node's content keys
 			iterables.forEach(x => {
-				let expression = map.get(x);
+				let expression = map.get(x)?.bind;
 				if (!expression || !iterable) return;
 
 				try {
@@ -410,7 +413,7 @@ export default class Binding {
 
 				x.setAttribute("bind", expression);
 				if (x.tagName === "TEMPLATE" && x.hasAttribute("each")) return;
-				if ((x as any).indexOnly) return;
+				if (map.get(x)?.indexOnly) return;
 				try {
 					//Replace all the attributes
 					for (const attr of x.attributes) {
@@ -422,6 +425,8 @@ export default class Binding {
 								`bind-${iterable}`,
 								`bind-${path}.${key}`
 							);
+
+							map.get(x)?.changes.set(attr.name, name);
 							x.setAttribute(name, "");
 							x.removeAttribute(attr.name);
 						}
@@ -455,22 +460,14 @@ export default class Binding {
 			//Clean up the template
 			iterables.forEach(x => {
 				//Replace back all the attributes
-				for (const attr of x.attributes) {
-					if (
-						attr.name == `bind-${path}.${key}` ||
-						attr.name.startsWith(`bind-${path}.${key}.`)
-					) {
-						const name = attr.name.replace(
-							`bind-${path}.${key}`,
-							`bind-${iterable}`
-						);
-						x.setAttribute(name, "");
-						x.removeAttribute(attr.name);
-					}
-				}
 				const backup = map.get(x);
 				if (!backup) return;
-				x.setAttribute("bind", backup);
+				x.setAttribute("bind", backup.bind);
+				backup.changes.forEach((changed, old) => {
+					x.setAttribute(old, "");
+					x.removeAttribute(changed);
+				});
+				backup.changes.clear();
 			});
 		}
 

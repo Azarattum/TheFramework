@@ -334,7 +334,7 @@ function processLoops(source, dataPoints) {
 	//Define $$tmpl variable
 	source = source.replace(
 		"function template(locals) {",
-		"$&let $$$$tmpl=false;let o=()=>{};let f=()=>{};"
+		"$&let $$$$tmpl=false;let f=()=>{};"
 	);
 
 	//Replace loop functions within datapoints
@@ -352,10 +352,9 @@ function processLoops(source, dataPoints) {
 	source = source.replace(
 		loopEndExp,
 		`$1pug_html+=$$$$tmpl?"</template>":"";$2;
-		o = f;
-		if (typeof $$$$obj == "undefined") {
-			$$$$tmpl = true; f.bind(this)(); $$$$tmpl = false;
-		} else {o.bind(this)();}
+		if (!$$$$tmpl) {
+			$$$$tmpl = true;f.bind(this)();$$$$tmpl = false;
+		} else {f.bind(this)();}
 		`
 	);
 

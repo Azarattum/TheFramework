@@ -253,8 +253,8 @@ export default class Binding {
 			scope += `const ${name.replace(/\./g, "_").replace(/-/g, "__")}='${(
 				(typeof data == "string" ? data : JSON.stringify(data)) || ""
 			)
-				.replace(/'/g, "\\'")
-				.replace(/\\/g, "\\\\")}';`;
+				.replace(/\\/g, "\\\\")
+				.replace(/'/g, "\\'")}';`;
 		}
 
 		return [expression, scope];

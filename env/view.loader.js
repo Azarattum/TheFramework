@@ -26,7 +26,7 @@ const attribExp = /pug\.attr\("([^\"]+)", ((.|\s)*?), (true|false), (true|false)
 const arrayExp = /(?<=[A-Za-z0-9_$\]]+)\[(\\\")?(([^\[]*\[[^\]]*\])*[^\[]*?)(\\\")?\]/g;
 const loopStartExp = /;\((function\s*\(\)\s*{)\s*var\s+\$\$obj\s*=\s*([^;]+);\s*(if[^{]+{\s*for\s*\(var\s*(\S+)[^\n]+\s*var\s+(\S+)\s*=)/g;
 const loopEndExp = /(  }\n)(}\))\.call\(this\);/g;
-const variablesExp = /(?<=^(([^`]|(\\`))*(?<!\\)`([^`]|(\\`))*(?<!\\)`)*([^`]|(\\`))*((?<!\\)`([^`]|(\\`))*\${[^}]*?)?)(?<=^|[^A-Za-z0-9_$.])[A-Za-z_$][A-Za-z0-9_$.]*(?=$|[^A-Za-z0-9_$])(?=(([^"]|(\\"))*(?<!\\)"([^"]|(\\"))*(?<!\\)")*([^"]|(\\"))*$)(?=(([^']|(\\'))*(?<!\\)'([^']|(\\'))*(?<!\\)')*([^']|(\\'))*$)(?=(([^/]|(\\\/))*(?<!\\)\/([^/]|(\\\/))+(?<!\\)\/)*([^/]|(\\\/))*($|\n))(?![A-Za-z0-9_$]*\s*\()/g;
+const variablesExp = /(?<=^(([^`]|(\\`))*(?<!\\)`([^`]|(\\`))*(?<!\\)`)*([^`]|(\\`))*((?<!\\)`([^`]|(\\`))*(?<!\\)\${[^}]*?)?)(?<=^|[^A-Za-z0-9_$.])[A-Za-z_$][A-Za-z0-9_$.]*(?=$|[^A-Za-z0-9_$])(?=(([^"]|(\\"))*(?<!\\)"([^"]|(\\"))*(?<!\\)")*([^"]|(\\"))*$)(?=(([^']|(\\'))*(?<!\\)'([^']|(\\'))*(?<!\\)')*([^']|(\\'))*$)(?=(([^/]|(\\\/))*(?<!\\)\/([^/]|(\\\/))+(?<!\\)\/)*([^/]|(\\\/))*($|\n))(?![A-Za-z0-9_$]*\s*\()/g;
 const unescapeExp = /(?<=([a-zA-Z_$0-9]+|\])\[)"\+|\+\"(?=\]($|\[))/g;
 const unescapeJSONExp = /\\\\\\"(\+\(\(typeof[^\\]*)\\\\\\"(undefined)\\\\\\"(\s*\|\|\s*)\\\\\\"([^\\]+)\\\\\\"([^\\]*)\\\\\\"([^\\]+)\\\\\\"([^\\]+)\\\\\\"/g;
 
@@ -374,6 +374,8 @@ module.exports = source => {
 const _$$$$escape=(str,json) => json ? str.replace(/\\\\/g,'\\\\\\\\').replace(/"/g,'\\\\"') : str;
 const _$$$$oo=Object.prototype.toString;
 const _$$$$oa=Array.prototype.toString;
+const _$$$$oj=JSON.stringify;
+JSON.stringify=function (...args){if (typeof args[0] == "function"){args[0] = args[0].toString()}return _$$$$oj(...args);}
 Object.prototype.toString=function (){return JSON.stringify(this);}
 Array.prototype.toString=function (){return JSON.stringify(this);};`
 	);
@@ -400,7 +402,7 @@ Array.prototype.toString=function (){return JSON.stringify(this);};`
 
 	source = source.replace(
 		/(return pug_html;)/,
-		`Object.prototype.toString=_$$$$oo;Array.prototype.toString=_$$$$oa;$1`
+		`JSON.stringify=_$$$$oj;Object.prototype.toString=_$$$$oo;Array.prototype.toString=_$$$$oa;$1`
 	);
 
 	return source;

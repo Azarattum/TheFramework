@@ -3,7 +3,9 @@
  * @param {string} variable Variable's name
  */
 function varRegex(variable) {
-	return new RegExp(`(^|[^A-Za-z0-9_$.])${variable}($|[^A-Za-z0-9_$\.\[])`);
+	return new RegExp(
+		`(^|[^A-Za-z0-9_$.])${variable}($|[^A-Za-z0-9_$.[]|((?=(\\.[A-Za-z0-9_$]*\\s*\\()|\\.length([^A-Za-z0-9_$]|$))))`
+	);
 }
 
 /**
@@ -12,7 +14,7 @@ function varRegex(variable) {
  */
 function objRegex(variable) {
 	return new RegExp(
-		`(?<=^|[^A-Za-z0-9_$])${variable}((\\.[A-Za-z0-9_$]+)|(\\[([^\\[]*\\[[^\\]]*\\])*[^\\[]*\\]))+`,
+		`(?<=^|[^A-Za-z0-9_$])${variable}(((\\.(?!length([^A-Za-z0-9_$]|$))[A-Za-z0-9_$]+)|(\\[([^\\[]*\\[[^\\]]*\\])*[^\\[]*\\]))(?![A-Za-z0-9_$]*\\s*\\())+`,
 		"g"
 	);
 }
@@ -24,7 +26,7 @@ const attribExp = /pug\.attr\("([^\"]+)", ((.|\s)*?), (true|false), (true|false)
 const arrayExp = /(?<=[A-Za-z0-9_$\]]+)\[(\\\")?(([^\[]*\[[^\]]*\])*[^\[]*?)(\\\")?\]/g;
 const loopStartExp = /;\((function\s*\(\)\s*{)\s*var\s+\$\$obj\s*=\s*([^;]+);\s*(if[^{]+{\s*for\s*\(var\s*(\S+)[^\n]+\s*var\s+(\S+)\s*=)/g;
 const loopEndExp = /(  }\n)(}\))\.call\(this\);/g;
-const variablesExp = /(?<=^(([^`]|(\\`))*(?<!\\)`([^`]|(\\`))*(?<!\\)`)*([^`]|(\\`))*((?<!\\)`([^`]|(\\`))*\${[^}]*?)?)(?<=^|[^A-Za-z0-9_$.])[A-Za-z_$.][A-Za-z0-9_$.]*(?=$|[^A-Za-z0-9_$])(?=(([^"]|(\\"))*(?<!\\)"([^"]|(\\"))*(?<!\\)")*([^"]|(\\"))*$)(?=(([^']|(\\'))*(?<!\\)'([^']|(\\'))*(?<!\\)')*([^']|(\\'))*$)/g;
+const variablesExp = /(?<=^(([^`]|(\\`))*(?<!\\)`([^`]|(\\`))*(?<!\\)`)*([^`]|(\\`))*((?<!\\)`([^`]|(\\`))*\${[^}]*?)?)(?<=^|[^A-Za-z0-9_$.])[A-Za-z_$][A-Za-z0-9_$.]*(?=$|[^A-Za-z0-9_$])(?=(([^"]|(\\"))*(?<!\\)"([^"]|(\\"))*(?<!\\)")*([^"]|(\\"))*$)(?=(([^']|(\\'))*(?<!\\)'([^']|(\\'))*(?<!\\)')*([^']|(\\'))*$)(?![A-Za-z0-9_$]*\s*\()/g;
 const unescapeExp = /(?<=([a-zA-Z_$0-9]+|\])\[)"\+|\+\"(?=\]($|\[))/g;
 const unescapeJSONExp = /\\\\\\"(\+\(\(typeof[^\\]*)\\\\\\"(undefined)\\\\\\"(\s*\|\|\s*)\\\\\\"([^\\]+)\\\\\\"([^\\]*)\\\\\\"([^\\]+)\\\\\\"([^\\]+)\\\\\\"/g;
 
@@ -157,7 +159,9 @@ function unwrapConstants(expression, dataPoints, escape = true) {
 		//If this is a constant, put its value instead
 		if (
 			!(variable in globalThis) &&
-			!dataPoints.includes(variable) &&
+			!dataPoints.find(
+				x => variable.startsWith(x + ".") || x === variable
+			) &&
 			!reservedKeywords.includes(variable)
 		) {
 			variable = `"+((typeof ${variable} === "undefined" || "${variable}" in window) ? "${variable}" : _$$wrap(${variable},_$$escape(JSON.stringify(${variable}),${!escape})))+"`;

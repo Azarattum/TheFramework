@@ -345,7 +345,9 @@ export default class Binding {
 			{ bind: string; changes: Map<string, string>; indexOnly: boolean }
 		>();
 		const node = element.content.cloneNode(true) as HTMLElement;
-		const step = node.childNodes.length;
+		const step = [...node.childNodes].filter(
+			x => x.nodeType != x.TEXT_NODE || x.textContent?.trim()
+		).length;
 		const iterables = selectWithTemplates(node, iterable, index);
 
 		//Prepare iterables for changes
@@ -444,6 +446,7 @@ export default class Binding {
 			for (let child of node.childNodes) {
 				//Wrap any text in a span
 				if (child.nodeType == child.TEXT_NODE) {
+					if (!child.textContent?.trim()) continue;
 					const span = document.createElement("span");
 					span.textContent = child.textContent;
 					child = span;

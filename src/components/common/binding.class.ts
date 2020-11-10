@@ -444,6 +444,7 @@ export default class Binding {
 			for (let child of node.childNodes) {
 				//Wrap any text in a span
 				if (child.nodeType == child.TEXT_NODE) {
+					if (!child.textContent?.trim()) continue;
 					const span = document.createElement("span");
 					span.textContent = child.textContent;
 					child = span;

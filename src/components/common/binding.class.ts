@@ -254,7 +254,8 @@ export default class Binding {
 				(typeof data == "string" ? data : JSON.stringify(data)) || ""
 			)
 				.replace(/\\/g, "\\\\")
-				.replace(/'/g, "\\'")}';`;
+				.replace(/'/g, "\\'")
+				.replace(/\n/g, "\\n")}';`;
 		}
 
 		return [expression, scope];
@@ -682,6 +683,13 @@ export default class Binding {
 	 * @param mode A mode for value to be set
 	 */
 	public set(path: string, value?: any, mode = SetMode.Normal): void {
+		//Promise support
+		if (value instanceof Promise) {
+			value.then(resolved => {
+				this.set(path, resolved, mode);
+			});
+			return;
+		}
 		//Normalize the input
 		path = path.toLowerCase();
 		value = typeof value == "object" ? this.makeDataObject(value) : value;

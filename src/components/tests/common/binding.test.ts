@@ -734,4 +734,30 @@ describe("Binding", () => {
 		expect(!checkbox.checked);
 		bind.close();
 	});
+
+	/**
+	 * Test for values given as promise
+	 */
+	it("promisesSupport", async () => {
+		container.innerHTML = `
+			<data-text id="text" bind-text bind="text"></data-text>
+		`;
+		bind = new Binding(container);
+
+		const promise = new Promise(resolve => {
+			setTimeout(() => {
+				resolve('"First line\nSecond line"');
+			}, 0);
+		});
+
+		bind.set("text", promise);
+
+		expect(bind.get("text")).toBe("");
+		expect($("text").innerHTML).toBe("");
+
+		await delay(2);
+
+		expect(bind.get("text")).toBe('"First line\nSecond line"');
+		expect($("text").innerHTML).toBe('"First line\nSecond line"');
+	});
 });

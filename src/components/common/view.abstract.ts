@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-this-alias */
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { IComponent } from "./manager.class";
 import Utils from "./utils.class";
@@ -18,6 +19,8 @@ export default function View(template: Function) {
 		public readonly uuid: string;
 		/**HTML template function */
 		protected template: Function;
+		/**Function resolves promise when the view is rendered the first time */
+		private resolveRender: Function | null;
 
 		/**
 		 * Creates new view component
@@ -26,8 +29,27 @@ export default function View(template: Function) {
 		public constructor() {
 			this.uuid = Utils.generateID();
 			this.name = this.constructor.name;
+			this.resolveRender = () => {
+				this.resolveRender = null;
+			};
+
 			this.template = template;
 			this.defineElement();
+		}
+
+		/**
+		 * Asynchronously initializes the view and resolves when it is rendered
+		 */
+		public async initialize(): Promise<void> {
+			const promise = new Promise<void>(resolve => {
+				if (this.resolveRender && this.containers.length) {
+					this.resolveRender = resolve;
+				} else {
+					resolve();
+				}
+			});
+
+			return promise;
 		}
 
 		/**
@@ -50,6 +72,7 @@ export default function View(template: Function) {
 				dataPoints = result[1]?.replace(/ /g, "")?.split(",") || [];
 			}
 
+			const view = this;
 			customElements.define(
 				`view-${this.name.toLowerCase()}`,
 				class extends HTMLElement {
@@ -58,6 +81,9 @@ export default function View(template: Function) {
 					private renderHandle?: number;
 					private reflectionHandle?: number;
 
+					/**
+					 * Custom element constructor
+					 */
 					public constructor() {
 						super();
 
@@ -84,6 +110,7 @@ export default function View(template: Function) {
 
 							//Render view
 							this.innerHTML = template(args);
+							view.resolveRender?.();
 						});
 					}
 
@@ -108,10 +135,16 @@ export default function View(template: Function) {
 						);
 					}
 
+					/**
+					 * Observed data attributes for the view custom element
+					 */
 					private static get observedAttributes() {
 						return dataPoints.map(x => `data-${x}`);
 					}
 
+					/**
+					 * Rerenders the view when an observed data attribute changes
+					 */
 					private attributeChangedCallback(
 						name: string,
 						oldValue: string,

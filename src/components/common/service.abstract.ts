@@ -35,6 +35,13 @@ export default function Service<T extends string>() {
 		}
 
 		/**
+		 * No relations
+		 */
+		public static get relations(): null {
+			return null;
+		}
+
+		/**
 		 * Calls all the registered event listeners in the service
 		 * @param type Event type
 		 * @param args Arguments to pass to callbacks

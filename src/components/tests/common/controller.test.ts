@@ -21,7 +21,8 @@ describe("Controller", () => {
 		const callback2 = jest.fn();
 		const exposed = jest.fn();
 		const expose = jest.fn();
-		const test = new TestController({ expose } as any);
+		const close = jest.fn();
+		const test = new TestController(jest.fn(), { expose, close } as any);
 
 		test.on("initialized", callback1);
 		test.on("initialized", callback2);
@@ -39,6 +40,7 @@ describe("Controller", () => {
 		);
 
 		test.close();
+		expect(close).toBeCalledTimes(1);
 		test.initialize();
 		expect(callback1).toBeCalledTimes(1);
 		expect(callback2).toBeCalledTimes(1);

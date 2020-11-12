@@ -45,7 +45,7 @@ export default function Controller<T extends string>() {
 		/**
 		 * All relational objects (html elements) for this controller class
 		 */
-		public static get relations(): object[] {
+		public static get relations(): object[] | null {
 			return Array.from(
 				document.querySelectorAll(
 					`[controller=${this.name.toLowerCase()}]`

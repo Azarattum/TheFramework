@@ -21,14 +21,17 @@ export default function View(template: Function) {
 		protected template: Function;
 		/**Function resolves promise when the view is rendered the first time */
 		private resolveRender: Function | null;
+		/**Callback to refresh application */
+		private refreshCallback: Function;
 
 		/**
 		 * Creates new view component
 		 * @param name The name of view
 		 */
-		public constructor() {
+		public constructor(refresh: () => void) {
 			this.uuid = Utils.generateID();
 			this.name = this.constructor.name;
+			this.refreshCallback = refresh;
 			this.resolveRender = () => {
 				this.resolveRender = null;
 			};
@@ -110,7 +113,10 @@ export default function View(template: Function) {
 
 							//Render view
 							this.innerHTML = template(args);
-							view.resolveRender?.();
+							setTimeout(() => {
+								view.resolveRender?.();
+								view.refreshCallback();
+							});
 						});
 					}
 
@@ -143,6 +149,13 @@ export default function View(template: Function) {
 					}
 
 					/**
+					 * Refreshes app when the view is deleted from DOM
+					 */
+					private disconnectedCallback() {
+						view.refreshCallback();
+					}
+
+					/**
 					 * Rerenders the view when an observed data attribute changes
 					 */
 					private attributeChangedCallback(
@@ -161,8 +174,8 @@ export default function View(template: Function) {
 		/**
 		 * No relations for general view component
 		 */
-		public static get relations(): object[] {
-			return [];
+		public static get relations(): null {
+			return null;
 		}
 	}
 

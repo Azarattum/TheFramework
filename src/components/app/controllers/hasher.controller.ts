@@ -10,8 +10,8 @@ export default class Hasher extends Controller<"loaded">() {
 	/**
 	 * No object relations for this controller
 	 */
-	public static get relations(): object[] {
-		return [];
+	public static get relations(): null {
+		return null;
 	}
 
 	/**

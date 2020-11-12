@@ -28,6 +28,11 @@ function wrap(object) {
 			if (prop == "relations") {
 				return null;
 			}
+			if (prop == "valueOf") {
+				return () => {
+					return ServiceWrapper;
+				};
+			}
 
 			return target[prop];
 		},
@@ -63,7 +68,7 @@ class ServiceWrapper {
 		return "Services";
 	}
 
-	constructor(name, original, exposer) {
+	constructor(name, original, refresh, exposer) {
 		this.name = name;
 		this.original = original;
 		this.exposer = exposer;
@@ -101,6 +106,7 @@ class ServiceWrapper {
 
 	close() {
 		this.callbacks = {};
+		this.exposer.close(this.name.toLowerCase(), null);
 		return this.original.close();
 	}
 }

@@ -1,4 +1,4 @@
-import Manager, { IComponentType } from "../../common/manager.class";
+import Manager from "../../common/manager.class";
 
 describe("Manager", () => {
 	/**
@@ -8,7 +8,6 @@ describe("Manager", () => {
 		const create = jest.fn();
 		const close = jest.fn();
 		const initialize = jest.fn();
-		const register = jest.fn();
 		class MockComponent {
 			public static type = "Controllers";
 			public name = "Test";
@@ -22,29 +21,21 @@ describe("Manager", () => {
 				close();
 			}
 		}
-		class MockEvents {
-			public registerEvents: () => Promise<void>;
 
-			public constructor(...args: any[]) {
-				this.registerEvents = register();
-			}
-		}
-
-		const components: IComponentType[] = [MockComponent];
-		const manager = new Manager(components, { events: MockEvents });
+		const components: any = [MockComponent];
+		const manager = new Manager(components);
 		manager.logging = false;
 
 		expect(create).toBeCalledTimes(1);
-		expect(manager.components.length).toBe(1);
+		expect(manager["components"].length).toBe(1);
 
-		const component = manager.getComponents("Test");
+		const component = manager["getComponents"](MockComponent as any);
 		expect(component).toBeInstanceOf(Array);
 		expect(component).toHaveLength(1);
 		expect(component[0]).toBeInstanceOf(MockComponent);
 
 		await manager.initialize().then(() => {
 			expect(initialize).toBeCalledTimes(1);
-			expect(register).toBeCalledTimes(1);
 		});
 
 		manager.close();
@@ -99,7 +90,7 @@ describe("Manager", () => {
 			}
 		}
 
-		const components: IComponentType[] = [
+		const components: any[] = [
 			MockControllerComponent,
 			MockServiceComponent,
 			MockViewComponent
@@ -108,22 +99,26 @@ describe("Manager", () => {
 		manager.logging = false;
 
 		expect(create).toBeCalledTimes(3);
-		expect(manager.components.length).toBe(3);
-		expect(manager.components[0]).toBeInstanceOf(MockServiceComponent);
-		expect(manager.components[1]).toBeInstanceOf(MockViewComponent);
-		expect(manager.components[2]).toBeInstanceOf(MockControllerComponent);
+		expect(manager["components"].length).toBe(3);
+		expect(manager["components"][0]).toBeInstanceOf(MockServiceComponent);
+		expect(manager["components"][1]).toBeInstanceOf(MockViewComponent);
+		expect(manager["components"][2]).toBeInstanceOf(
+			MockControllerComponent
+		);
 
-		let component = manager.getComponents("TestController");
+		let component = manager["getComponents"](
+			MockControllerComponent as any
+		);
 		expect(component).toBeInstanceOf(Array);
 		expect(component).toHaveLength(1);
 		expect(component[0]).toBeInstanceOf(MockControllerComponent);
 
-		component = manager.getComponents("TestService");
+		component = manager["getComponents"](MockServiceComponent as any);
 		expect(component).toBeInstanceOf(Array);
 		expect(component).toHaveLength(1);
 		expect(component[0]).toBeInstanceOf(MockServiceComponent);
 
-		component = manager.getComponents("TestView");
+		component = manager["getComponents"](MockViewComponent as any);
 		expect(component).toBeInstanceOf(Array);
 		expect(component).toHaveLength(1);
 		expect(component[0]).toBeInstanceOf(MockViewComponent);
@@ -161,14 +156,14 @@ describe("Manager", () => {
 			}
 		}
 
-		const components: IComponentType[] = [MockRelationalComponent];
+		const components: any[] = [MockRelationalComponent];
 		const manager = new Manager(components);
 		manager.logging = false;
 
-		expect(manager.components.length).toBe(4);
+		expect(manager["components"].length).toBe(4);
 		expect(create).toBeCalledTimes(4);
 
-		const component = manager.getComponents("TestController");
+		const component = manager["getComponents"](MockRelationalComponent);
 		expect(component).toBeInstanceOf(Array);
 		expect(component).toHaveLength(4);
 		for (let i = 0; i < component.length; i++) {

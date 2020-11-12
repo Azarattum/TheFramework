@@ -30,7 +30,11 @@ export default function Controller<T extends string>() {
 		/**
 		 * Creates controller class
 		 */
-		public constructor(exposer: Exposer, relation?: object) {
+		public constructor(
+			refresh: () => void,
+			exposer: Exposer,
+			relation?: object
+		) {
 			this.uuid = Utils.generateID();
 			this.name = this.constructor.name;
 			this.exposer = exposer;
@@ -56,6 +60,7 @@ export default function Controller<T extends string>() {
 			//Close the controller
 			this.callbacks = {};
 			this.binding?.close();
+			this.exposer.close(this.name.toLowerCase(), this.relation);
 		}
 
 		/**

@@ -20,6 +20,26 @@ export default class Exposer {
 	}
 
 	/**
+	 * Closes all related functions. They will no longer
+	 * be exposed
+	 * @param relation Function's relation
+	 */
+	public close(module: string, relation: object | null): void {
+		const records = this.records.get(module);
+		if (!records) return;
+		let size = 0;
+		records.forEach((functions, name) => {
+			if (!functions) return;
+			functions = functions.filter(
+				x => this.relations.get(x) != relation
+			);
+			size += functions.length;
+			records.set(name, functions);
+		});
+		if (!size) delete this.scope[module];
+	}
+
+	/**
 	 * Exposes function to the scope with access like `module.name`
 	 * @param module Module name
 	 * @param name Method name
@@ -49,9 +69,10 @@ export default class Exposer {
 			?.push(method);
 
 		const bounds = this.relations;
-		const methods = this.records.get(module)?.get(name);
+		const records = this.records.get(module);
 		const self = this.scope[module];
 		self[name] = function(...args: any[]): any | any[] {
+			const methods = records?.get(name);
 			if (!methods || !methods.length) return;
 
 			const results = [];

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-this-alias */
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
-import { IComponent } from "./manager.class";
+import { IComponent, IComponentOptions } from "./component.interface";
 import Utils from "./utils.class";
 
 /**
@@ -28,7 +28,7 @@ export default function View(template: Function) {
 		 * Creates new view component
 		 * @param name The name of view
 		 */
-		public constructor(refresh: () => void) {
+		public constructor({ refresh }: IComponentOptions) {
 			this.uuid = Utils.generateID();
 			this.name = this.constructor.name;
 			this.refreshCallback = refresh;

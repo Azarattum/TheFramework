@@ -3,6 +3,15 @@
  * @param {string} source Service source code
  */
 module.exports = source => {
+	const path = require("path");
+
+	source = source.replace(
+		"!worker-loader?{}",
+		`!worker-loader?{}!${path
+			.resolve(__dirname, "adapter.loader.js")
+			.replace(/\\/g, "\\\\")}`
+	);
+
 	return (
 		source +
 		ServiceWrapper.toString() +

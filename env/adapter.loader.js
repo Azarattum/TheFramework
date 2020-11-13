@@ -24,6 +24,11 @@ module.exports = function(source) {
                 return c.wrap(port);
             }
         });
-        const expose = (...args) => {c.expose(...args);};
-        ${source.replace("import { expose } from 'comlink';", "")}`;
+        const $$expose = (...args) => {c.expose(...args);};
+        ${source
+			.replace("import { expose } from 'comlink';", "")
+			.replace(
+				/(?<!@|\.)expose(?=\(\s*Object\.)(?!.*(?<!@|\.)expose)/s,
+				"$$$$expose"
+			)}`;
 };

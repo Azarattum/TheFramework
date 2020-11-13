@@ -131,11 +131,11 @@ export default function View(template: Function) {
 						this.reflectionHandle = requestAnimationFrame(
 							async () => {
 								this.querySelectorAll(
-									`data-text[${name}]:not([value])`
+									`data-text[bind="${name}"]`
 								).forEach(x => (x.textContent = value));
 
 								this.querySelectorAll(
-									`data-html[${name}]:not([value])`
+									`data-html[bind="${name}"]`
 								).forEach(x => (x.innerHTML = value));
 							}
 						);

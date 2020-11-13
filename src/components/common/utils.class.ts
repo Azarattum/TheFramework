@@ -86,6 +86,77 @@ export default class Utils {
 			)
 			.join("-");
 	}
+
+	/**
+	 * Returns data converted to a given prototype. With respect to object prototypes,
+	 * array types and primitive types. Supports JSON conversions.
+	 * If `proto` is undefined the data returns unchanged.
+	 * @param proto A prototype value for conversion
+	 * @param data Data value to convert
+	 */
+	public static convertTo(proto: any, data: any): any {
+		if (typeof proto === "string") {
+			return typeof data === "object"
+				? JSON.stringify(data)
+				: String(data);
+		} else if (typeof proto === "number") {
+			return Number.parseFloat(data);
+		} else if (typeof proto === "boolean") {
+			return !!data;
+		} else if (typeof proto === "bigint") {
+			return typeof data === "bigint"
+				? data
+				: BigInt(Number.parseInt(data));
+		} else if (typeof proto === "function") {
+			return typeof data === "function" ? data : (): any => data;
+		} else if (typeof proto === "object") {
+			if (typeof data === "string") {
+				try {
+					data = JSON.parse(data);
+				} catch {
+					//Do nothing
+				}
+			}
+			if (Array.isArray(proto)) {
+				const unitype: boolean = proto.every(
+					(x: any) => typeof x === typeof proto[0]
+				);
+
+				if (typeof data === "object") {
+					if (!Array.isArray(data)) data = Object.values(data);
+					const converted: any[] = [];
+
+					for (let i = 0; i < data.length; i++) {
+						let type = proto[i];
+						if (typeof type === "undefined" && unitype)
+							type = proto[0];
+
+						converted[i] = Utils.convertTo(type, data[i]);
+					}
+
+					return converted;
+				} else {
+					return [unitype ? Utils.convertTo(proto[0], data) : data];
+				}
+			} else {
+				if (typeof data === "object") {
+					const converted: Record<any, any> = Object.create(
+						Object.getPrototypeOf(proto)
+					);
+					Object.assign(converted, proto);
+
+					for (const key in data) {
+						converted[key] = Utils.convertTo(proto[key], data[key]);
+					}
+					return converted;
+				} else {
+					return proto;
+				}
+			}
+		}
+
+		return data;
+	}
 }
 
 /**

@@ -1,19 +1,20 @@
+import { IComponent, IComponentType } from "./component.interface";
 import Utils, { LogType } from "./utils.class";
 import Exposer from "./exposer.class";
 
 /**
- * Components manager
+ * Application base class
  */
-export default class Manager {
+export default abstract class Application {
 	/**Whether to log out initialization status */
 	public logging: boolean = true;
-	/**Managed components */
+	/**Application components */
 	protected components: IComponent[];
-	/**Configuration for initialization of componets */
-	protected config: IComponentConfig = {};
-	/**Whether manager is initialized now */
+	/**Configuration for componets initialization */
+	protected configs: Map<IComponentType, any[]>;
+	/**Application initialization state */
 	private initialized = false;
-	/**Manager's exposer object */
+	/**Application's exposer object */
 	private readonly exposer: Exposer;
 	/**Components types */
 	private readonly types: IComponentType[];
@@ -22,21 +23,28 @@ export default class Manager {
 	/**Handlers map for each component type */
 	private readonly handlers: Map<IComponentType, ((self: any) => void)[]>;
 	/**Timeout id for debouncing refresh calls */
-	private refresher: any = undefined;
+	private refresher: any;
 
 	/**
-	 * Creates a component manager
-	 * @param components Components to manage
+	 * Creates an application with components
+	 * @param components Application components
+	 * @param options Application options
 	 */
 	public constructor(
 		components: IComponentType[],
-		{ scope = globalThis, logging = true }: IManagerOptions = {}
+		{
+			scope = globalThis,
+			configs = new Map(),
+			logging = true
+		}: IApplicationOptions = {}
 	) {
 		this.components = [];
+		this.configs = configs;
 		this.logging = logging;
 		this.types = components;
 		this.handlers = new Map();
 		this.relations = new Map();
+		this.refresher = undefined;
 		this.exposer = new Exposer(scope);
 
 		this.registerHandlers();
@@ -61,11 +69,15 @@ export default class Manager {
 	/**
 	 * Initializes all components
 	 */
-	public async initialize(config: IComponentConfig = {}): Promise<void> {
+	public async initialize(
+		...configs: [IComponentType, ...any[]][]
+	): Promise<void> {
 		let exceptions = 0;
 		if (this.logging) Utils.log("Initializtion started...");
-
-		this.config = config;
+		//Apply configs
+		configs.forEach(x => {
+			this.configs.set(x.shift().valueOf(), x);
+		});
 
 		let lastType = "";
 		//Initialize all components
@@ -166,7 +178,7 @@ export default class Manager {
 	}
 
 	/**
-	 * Closes all managed components
+	 * Closes all the components
 	 */
 	public close(): void {
 		if (!this.initialized) return;
@@ -232,7 +244,7 @@ export default class Manager {
 	}
 
 	/**
-	 * Returns managed components by the type
+	 * Returns components by the type
 	 * @param type Component's type
 	 */
 	protected getComponents<T extends IComponent>(
@@ -273,7 +285,8 @@ export default class Manager {
 			}
 
 			//Initialize the component with its config
-			const args = this.config[component.name] || [];
+			const args =
+				this.configs.get(component.constructor as IComponentType) || [];
 			if (component.initialize) {
 				await component.initialize(...args);
 			}
@@ -304,11 +317,11 @@ export default class Manager {
 		relation?: object
 	): IComponent | null {
 		try {
-			const created = new component(
-				this.refresh.bind(this),
-				this.exposer,
-				relation
-			);
+			const created = new component({
+				refresh: this.refresh.bind(this),
+				exposer: this.exposer,
+				relation: relation || null
+			});
 			if (relation) this.relations.set(created, relation);
 
 			this.components.push(created);
@@ -342,7 +355,7 @@ export default class Manager {
  */
 export function handle<T extends IComponent>(type: IComponentType<T>) {
 	return function(
-		target: Manager,
+		target: Application,
 		_: string,
 		descriptor: TypedPropertyDescriptor<(self: T) => any>
 	): any {
@@ -363,44 +376,15 @@ export function handle<T extends IComponent>(type: IComponentType<T>) {
 }
 
 /**
- * Interface of component class
+ * Application options interface
  */
-export interface IComponent {
-	/**Initializable name */
-	name: string;
+export interface IApplicationOptions {
+	/**Component configuration map */
+	configs?: Map<IComponentType, any[]>;
 
-	/**Initializable entry */
-	initialize?(...args: any[]): void;
-
-	/**Component destructor */
-	close?(): void;
-}
-
-/**
- * Manger options interface
- */
-interface IManagerOptions {
+	/**Scope for an exposer */
 	scope?: Record<string, any>;
+
+	/**Whether to log application output */
 	logging?: boolean;
-}
-
-/**
- * Interface of component constructor
- */
-interface IComponentType<T extends IComponent = IComponent> {
-	/**Component constructor */
-	new (refresh: () => void, exposer: Exposer, relation?: object): T;
-
-	/**Component relations */
-	relations: object[] | null;
-
-	/**Component type */
-	type: string;
-}
-
-/**
- * Arguments for components initialization
- */
-interface IComponentConfig {
-	[name: string]: any[];
 }

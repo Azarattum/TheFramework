@@ -1,5 +1,5 @@
 /* eslint @typescript-eslint/explicit-function-return-type: 0 */
-import { IComponent } from "./manager.class";
+import { IComponent } from "./component.interface";
 import Utils from "./utils.class";
 
 /**

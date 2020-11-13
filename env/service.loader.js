@@ -68,7 +68,7 @@ class ServiceWrapper {
 		return "Services";
 	}
 
-	constructor(name, original, refresh, exposer) {
+	constructor(name, original, { exposer }) {
 		this.name = name;
 		this.original = original;
 		this.exposer = exposer;

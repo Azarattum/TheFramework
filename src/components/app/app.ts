@@ -1,9 +1,9 @@
-import Manager from "../common/manager.class";
+import Application from "../common/application.abstract";
 
 /**
- * Main application class
+ * Application class
  */
-export default class App extends Manager {
+export default class App extends Application {
 	/**
 	 * Application constructor
 	 */
@@ -17,8 +17,8 @@ export default class App extends Manager {
 	 * Initializes the app
 	 */
 	public async initialize(): Promise<void> {
-		await super.initialize({
-			///Put components' configurations here
-		});
+		///Put components' configurations here
+		///  .initialize([Component, arg1, arg2, arg3...], [Component2, ...])
+		await super.initialize();
 	}
 }

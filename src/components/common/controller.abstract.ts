@@ -1,5 +1,5 @@
 /* eslint @typescript-eslint/explicit-function-return-type: 0 */
-import { IComponent } from "./manager.class";
+import { IComponent, IComponentOptions } from "./component.interface";
 import Exposer from "./exposer.class";
 import Utils from "./utils.class";
 
@@ -27,11 +27,7 @@ export default function Controller<T extends string>() {
 		/**
 		 * Creates controller class
 		 */
-		public constructor(
-			refresh: () => void,
-			exposer: Exposer,
-			relation?: object
-		) {
+		public constructor({ exposer, relation }: IComponentOptions) {
 			this.uuid = Utils.generateID();
 			this.name = this.constructor.name;
 			this.exposer = exposer;

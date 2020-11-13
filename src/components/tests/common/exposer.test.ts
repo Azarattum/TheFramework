@@ -118,4 +118,39 @@ describe("Exposer", () => {
 		const result = scope[module][name](...values);
 		expect(result).toBe(values[0]);
 	});
+
+	/**
+	 * Test exposer close
+	 */
+	it("exposerClose", () => {
+		const scope: any = {};
+		const exposer = new Exposer(scope);
+
+		const module = "Test";
+		const module2 = "Test2";
+		const name = "mock";
+		const relation1 = {};
+		const relation2 = {};
+
+		exposer.expose(module, name, () => 42);
+		exposer.expose(module2, name, () => 1337, relation1);
+		exposer.expose(module2, name, () => 777, relation2);
+
+		expect(scope[module][name]()).toBe(42);
+		expect(scope[module2][name]()).toEqual([1337, 777]);
+
+		exposer.close(module, null);
+		expect(!(module in scope));
+		expect(scope[module2][name]()).toEqual([1337, 777]);
+
+		exposer.close(module2, relation1);
+		expect(scope[module2][name]()).toBe(777);
+
+		exposer.close(module2, null);
+		exposer.close(module2, relation1);
+		expect(scope[module2][name]()).toBe(777);
+
+		exposer.close(module2, relation2);
+		expect(!(module2 in scope));
+	});
 });

@@ -49,4 +49,66 @@ describe("Utils", () => {
 		string = Utils.format(string, "•");
 		expect(string).toBe("Double holder: •_•");
 	});
+
+	/**
+	 * Test utils unique id generation algorithm
+	 */
+	it("generateID", () => {
+		const id = Utils.generateID();
+		expect(id).toMatch(/^(?:[a-z0-9]+(?:-|$)){4}$/);
+		expect(id).not.toBe(Utils.generateID());
+	});
+
+	/**
+	 * Test utils conversion function
+	 */
+	it("convertTo", () => {
+		expect(Utils.convertTo("", 1)).toBe("1");
+		expect(Utils.convertTo("", { a: 1 })).toBe(JSON.stringify({ a: 1 }));
+
+		expect(Utils.convertTo(1, { a: 1 })).toBe(NaN);
+		expect(Utils.convertTo(1, "10px")).toBe(10);
+		expect(Utils.convertTo(1, "-10.5")).toBe(-10.5);
+
+		expect(Utils.convertTo(true, "-10.5")).toBeTruthy();
+		expect(Utils.convertTo(true, {})).toBeTruthy();
+		expect(Utils.convertTo(true, "")).toBeFalsy();
+		expect(Utils.convertTo(true, 0)).toBeFalsy();
+
+		expect(Utils.convertTo(BigInt(1), 42)).toBe(BigInt(42));
+		expect(Utils.convertTo(BigInt(1), "42")).toBe(BigInt(42));
+		expect(Utils.convertTo(BigInt(1), BigInt(99999))).toBe(BigInt(99999));
+
+		const func = (): any => {};
+		expect(Utils.convertTo(() => {}, func)).toBe(func);
+		expect(Utils.convertTo(() => {}, 4)()).toBe(4);
+		expect(Utils.convertTo(() => {}, "test")()).toBe("test");
+
+		const obj = { a: 1 };
+		const obj2 = { b: 2 };
+		const obj3 = { a: "42" };
+		expect(Utils.convertTo(obj, "test")).toBe(obj);
+		expect(Utils.convertTo(obj, obj2)).toEqual({ a: 1, b: 2 });
+		expect(Utils.convertTo(obj, obj3)).toEqual({ a: 42 });
+		expect(Utils.convertTo(new Date(), obj)).toBeInstanceOf(Date);
+		expect(Utils.convertTo(new Date(), obj).a).toBe(1);
+		expect(Utils.convertTo(obj, JSON.stringify(obj2))).toEqual({
+			a: 1,
+			b: 2
+		});
+
+		expect(Utils.convertTo([], [1, 2, 3])).toEqual([1, 2, 3]);
+		expect(Utils.convertTo([1], [1, 2, "3"])).toEqual([1, 2, 3]);
+		expect(Utils.convertTo([1, "2"], [1, 2, "3"])).toEqual([1, "2", "3"]);
+		expect(Utils.convertTo([1, "2"], [1, 2, 3])).toEqual([1, "2", 3]);
+		expect(Utils.convertTo([], "[1, 2]")).toEqual([1, 2]);
+		expect(Utils.convertTo([], '[1, "2"]')).toEqual([1, "2"]);
+		expect(Utils.convertTo([], true)).toEqual([true]);
+		expect(Utils.convertTo(["1"], '[1, "2"]')).toEqual(["1", "2"]);
+		expect(Utils.convertTo([1], '[1, "2"]')).toEqual([1, 2]);
+		expect(Utils.convertTo([1], obj)).toEqual([1]);
+		expect(Utils.convertTo(["1"], obj)).toEqual(["1"]);
+		expect(Utils.convertTo([1], "lol")).toEqual([NaN]);
+		expect(Utils.convertTo([1, "tst"], "lol")).toEqual(["lol"]);
+	});
 });

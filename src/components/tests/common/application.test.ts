@@ -1,8 +1,9 @@
-import Manager from "../../common/manager.class";
+import Application from "../../common/application.abstract";
+import { IComponentType } from "../../common/component.interface";
 
-describe("Manager", () => {
+describe("Application", () => {
 	/**
-	 * Test manager with single component
+	 * Test application with single component
 	 */
 	it("singleComponent", async () => {
 		const create = jest.fn();
@@ -20,30 +21,35 @@ describe("Manager", () => {
 			public close(): void {
 				close();
 			}
+			public static get relations(): null {
+				return null;
+			}
 		}
 
-		const components: any = [MockComponent];
-		const manager = new Manager(components);
-		manager.logging = false;
+		class App extends Application {}
+
+		const components: IComponentType[] = [MockComponent];
+		const app = new App(components);
+		app.logging = false;
 
 		expect(create).toBeCalledTimes(1);
-		expect(manager["components"].length).toBe(1);
+		expect(app["components"].length).toBe(1);
 
-		const component = manager["getComponents"](MockComponent as any);
+		const component = app["getComponents"](MockComponent as any);
 		expect(component).toBeInstanceOf(Array);
 		expect(component).toHaveLength(1);
 		expect(component[0]).toBeInstanceOf(MockComponent);
 
-		await manager.initialize().then(() => {
+		await app.initialize().then(() => {
 			expect(initialize).toBeCalledTimes(1);
 		});
 
-		manager.close();
+		app.close();
 		expect(close).toBeCalledTimes(1);
 	});
 
 	/**
-	 * Test manager with multiple components
+	 * Test application with multiple components
 	 * of different types
 	 */
 	it("multipleComponents", async () => {
@@ -62,6 +68,9 @@ describe("Manager", () => {
 			public close(): void {
 				close();
 			}
+			public static get relations(): null {
+				return null;
+			}
 		}
 		class MockServiceComponent {
 			public static type = "Services";
@@ -74,6 +83,9 @@ describe("Manager", () => {
 			}
 			public close(): void {
 				close();
+			}
+			public static get relations(): null {
+				return null;
 			}
 		}
 		class MockViewComponent {
@@ -88,51 +100,51 @@ describe("Manager", () => {
 			public close(): void {
 				close();
 			}
+			public static get relations(): null {
+				return null;
+			}
 		}
+		class App extends Application {}
 
-		const components: any[] = [
+		const components: IComponentType[] = [
 			MockControllerComponent,
 			MockServiceComponent,
 			MockViewComponent
 		];
-		const manager = new Manager(components);
-		manager.logging = false;
+		const app = new App(components);
+		app.logging = false;
 
 		expect(create).toBeCalledTimes(3);
-		expect(manager["components"].length).toBe(3);
-		expect(manager["components"][0]).toBeInstanceOf(MockServiceComponent);
-		expect(manager["components"][1]).toBeInstanceOf(MockViewComponent);
-		expect(manager["components"][2]).toBeInstanceOf(
-			MockControllerComponent
-		);
+		expect(app["components"].length).toBe(3);
+		expect(app["components"][0]).toBeInstanceOf(MockServiceComponent);
+		expect(app["components"][1]).toBeInstanceOf(MockViewComponent);
+		expect(app["components"][2]).toBeInstanceOf(MockControllerComponent);
 
-		let component = manager["getComponents"](
-			MockControllerComponent as any
-		);
+		let component = app["getComponents"](MockControllerComponent as any);
 		expect(component).toBeInstanceOf(Array);
 		expect(component).toHaveLength(1);
 		expect(component[0]).toBeInstanceOf(MockControllerComponent);
 
-		component = manager["getComponents"](MockServiceComponent as any);
+		component = app["getComponents"](MockServiceComponent as any);
 		expect(component).toBeInstanceOf(Array);
 		expect(component).toHaveLength(1);
 		expect(component[0]).toBeInstanceOf(MockServiceComponent);
 
-		component = manager["getComponents"](MockViewComponent as any);
+		component = app["getComponents"](MockViewComponent as any);
 		expect(component).toBeInstanceOf(Array);
 		expect(component).toHaveLength(1);
 		expect(component[0]).toBeInstanceOf(MockViewComponent);
 
-		await manager.initialize().then(() => {
+		await app.initialize().then(() => {
 			expect(initialize).toBeCalledTimes(3);
 		});
 
-		manager.close();
+		app.close();
 		expect(close).toBeCalledTimes(3);
 	});
 
 	/**
-	 * Test manager with duplicate components
+	 * Test application with duplicate components
 	 * with multiple relations of the same type
 	 */
 	it("relationalComponents", async () => {
@@ -155,26 +167,27 @@ describe("Manager", () => {
 				return [{}, {}, {}, {}];
 			}
 		}
+		class App extends Application {}
 
-		const components: any[] = [MockRelationalComponent];
-		const manager = new Manager(components);
-		manager.logging = false;
+		const components: IComponentType[] = [MockRelationalComponent];
+		const app = new App(components);
+		app.logging = false;
 
-		expect(manager["components"].length).toBe(4);
+		expect(app["components"].length).toBe(4);
 		expect(create).toBeCalledTimes(4);
 
-		const component = manager["getComponents"](MockRelationalComponent);
+		const component = app["getComponents"](MockRelationalComponent);
 		expect(component).toBeInstanceOf(Array);
 		expect(component).toHaveLength(4);
 		for (let i = 0; i < component.length; i++) {
 			expect(component[i]).toBeInstanceOf(MockRelationalComponent);
 		}
 
-		await manager.initialize().then(() => {
+		await app.initialize().then(() => {
 			expect(initialize).toBeCalledTimes(4);
 		});
 
-		manager.close();
+		app.close();
 		expect(close).toBeCalledTimes(4);
 	});
 });

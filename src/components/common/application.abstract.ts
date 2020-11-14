@@ -180,7 +180,7 @@ export default abstract class Application {
 	/**
 	 * Closes all the components
 	 */
-	public close(): void {
+	public async close(): Promise<void> {
 		if (!this.initialized) return;
 		if (this.logging) {
 			Utils.log("", LogType.DIVIDER);
@@ -211,20 +211,20 @@ export default abstract class Application {
 		}
 
 		this.initialized = false;
+		await Promise.all(promises);
 
 		//Log result
 		if (!this.logging) return;
 		Utils.log("", LogType.DIVIDER);
-		Promise.all(promises).then(() => {
-			if (exceptions) {
-				Utils.log(
-					`Stopped with ${exceptions} exceptions!`,
-					LogType.WARNING
-				);
-			} else {
-				Utils.log("Successfyly stopped!", LogType.OK);
-			}
-		});
+
+		if (exceptions) {
+			Utils.log(
+				`Stopped with ${exceptions} exceptions!`,
+				LogType.WARNING
+			);
+		} else {
+			Utils.log("Successfyly stopped!", LogType.OK);
+		}
 	}
 
 	/**

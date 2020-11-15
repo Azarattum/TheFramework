@@ -23,11 +23,11 @@ npm install
 ```
 
 ### NPM Scripts:
-| Script   | Description                                             |
-| -------- | ------------------------------------------------------- |
-| **run**  | Runs your application                                   |
-| release  | Creates a production build of the project               |
-| build    | Builds the entire project with webpack                  |
-| watch    | Watches all file changes and rebuilds them if necessary |
-| test     | Run all tests                                           |
-| coverage | Generate code test coverage report                      |
+| Script    | Description                                             |
+| --------- | ------------------------------------------------------- |
+| **start** | Runs your application                                   |
+| release   | Creates a production build of the project               |
+| build     | Builds the entire project with webpack                  |
+| watch     | Watches all file changes and rebuilds them if necessary |
+| test      | Run all tests                                           |
+| coverage  | Generate code test coverage report                      |

@@ -1,18 +1,9 @@
 import Application, { handle } from "../../common/application.abstract";
+import { sleep } from "../../common/utils.class";
 import {
 	IComponentOptions,
 	IComponentType
 } from "../../common/component.interface";
-
-/**
- * Promise based delay function
- * @param delay Delay in milliseconds
- */
-const delay = async (delay: number): Promise<void> => {
-	return new Promise(resolve => {
-		setTimeout(resolve, delay);
-	});
-};
 
 describe("Application", () => {
 	/**
@@ -354,14 +345,14 @@ describe("Application", () => {
 		relations = [obj1];
 		expect(app["components"].length).toBe(3);
 		await app.initialize();
-		await delay(1);
+		await sleep(1);
 		app.logging = false;
 
 		expect(app["components"].length).toBe(2);
 		expect(close).toBeCalledTimes(1);
 		relations = [];
 		app.refresh();
-		await delay(1);
+		await sleep(1);
 
 		expect(app["components"].length).toBe(1);
 		expect(close).toBeCalledTimes(2);
@@ -369,7 +360,7 @@ describe("Application", () => {
 		app.logging = true;
 		relations = [obj1, obj2];
 		app.refresh();
-		await delay(1);
+		await sleep(1);
 		expect(app["components"].length).toBe(3);
 
 		expect(app["getComponents"](MockComponent2).length).toBe(2);

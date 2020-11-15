@@ -1,6 +1,7 @@
 import { IComponent, IComponentType } from "../../common/component.interface";
 import Service from "../../common/service.abstract";
 import serviceLoad from "../../../../env/service.loader";
+import { sleep } from "../../common/utils.class";
 
 /**
  * Loads the service with custom loader
@@ -12,16 +13,6 @@ function load<T extends IComponent>(
 	const source = serviceLoad("module.exports=" + service.toString());
 	return eval(source);
 }
-
-/**
- * Promise based delay function
- * @param delay Delay in milliseconds
- */
-const delay = async (delay: number): Promise<void> => {
-	return new Promise(resolve => {
-		setTimeout(resolve, delay);
-	});
-};
 
 describe("ServiceLoader", () => {
 	/**
@@ -86,11 +77,11 @@ describe("ServiceLoader", () => {
 		const TestLoaded = load(Test);
 		const test = await new TestLoaded({ exposer } as any);
 		test.on("initted", initted);
-		await delay(1);
+		await sleep(1);
 
 		expect(initted).not.toBeCalled();
 		await test.initialize();
-		await delay(1);
+		await sleep(1);
 
 		expect(initted).toBeCalled();
 		expect(expose).toBeCalledWith("test", "func", expect.any(Function));

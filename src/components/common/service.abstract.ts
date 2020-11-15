@@ -19,7 +19,7 @@ export default function Service<T extends string>() {
 		/**Event resolution callback */
 		private resolve: Function | null;
 		/**Events queue */
-		private events: { type: string; args: any[] }[];
+		private events: { type: T; args: any[] }[];
 		/**Map to all exposed functions */
 		private exposed: Map<string, Function>;
 
@@ -60,8 +60,8 @@ export default function Service<T extends string>() {
 		 * Returns a promise of the next emitted event.
 		 * Used by proxy wrapper, should not be used anywhere else!
 		 */
-		private async listen(): Promise<any> {
-			const event = new Promise(resolve => {
+		private async listen(): Promise<{ type: T; args: any[] }> {
+			const event = new Promise<{ type: T; args: any[] }>(resolve => {
 				if (this.events.length) {
 					resolve(this.events.shift());
 					return;

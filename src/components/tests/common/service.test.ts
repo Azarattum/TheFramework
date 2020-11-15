@@ -14,11 +14,12 @@ describe("Service", () => {
 		const callback = jest.fn();
 		const test = new Test();
 
+		expect(Test.relations).toBeNull();
 		expect(test.name).toBe("Test");
 		test.on("initted", callback);
 		test.initialize();
 
-		const { type, args } = await (test as any).listen();
+		const { type, args } = await test["listen"]();
 		expect(type).toBe("initted");
 		expect(args).toHaveLength(0);
 
@@ -33,13 +34,14 @@ describe("Service", () => {
 		const value2 = "arg";
 		const mock = jest.fn();
 
-		class Test extends Service<"initted">() {
+		class Test extends Service<"initted" | "mocked">() {
 			public async initialize(): Promise<void> {
 				this.expose("mock");
 			}
 
 			public async mock(...args: any[]): Promise<string> {
 				mock(...args);
+				this.emit("mocked");
 				return value;
 			}
 		}
@@ -47,15 +49,26 @@ describe("Service", () => {
 		const test = new Test();
 		test.initialize();
 
-		const { type, args } = await (test as any).listen();
+		const { type, args } = await test["listen"]();
 		expect(type).toBe("__exposed");
 		expect(args[0]).toBe("mock");
 		expect(args[1]).toContain("mock");
 
-		const result = await (test as any).call(args[1], value2);
+		let resolved = false;
+		const promise = test["listen"]();
+		expect(promise).toBeInstanceOf(Promise);
+		promise.then(() => {
+			resolved = true;
+		});
+		expect(!resolved);
+
+		const result = await test["call"](args[1], value2);
 		expect(mock).toBeCalledTimes(1);
 		expect(mock).toBeCalledWith(value2);
 		expect(result).toBe(value);
+
+		expect(await promise).toEqual({ type: "mocked", args: [] });
+		expect(resolved);
 
 		test.close();
 	});

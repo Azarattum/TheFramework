@@ -15,6 +15,10 @@ describe("Controller", () => {
 			public method(): any {
 				//Do nothing
 			}
+
+			public static get relations(): null {
+				return null;
+			}
 		}
 
 		const callback1 = jest.fn();
@@ -24,6 +28,7 @@ describe("Controller", () => {
 		const close = jest.fn();
 		const test = new TestController({ exposer: { expose, close } } as any);
 
+		expect(TestController.relations).toBeNull();
 		test.on("initialized", callback1);
 		test.on("initialized", callback2);
 		test.initialize();

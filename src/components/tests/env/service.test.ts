@@ -1,9 +1,6 @@
-import {
-	IComponent,
-	IComponentType
-} from "../src/components/common/component.interface";
-import Service from "../src/components/common/service.abstract";
-import serviceLoad from "./service.loader";
+import { IComponent, IComponentType } from "../../common/component.interface";
+import Service from "../../common/service.abstract";
+import serviceLoad from "../../../../env/service.loader";
 
 /**
  * Loads the service with custom loader

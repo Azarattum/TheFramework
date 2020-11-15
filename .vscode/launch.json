@@ -8,12 +8,18 @@
 			"type": "node",
 			"request": "launch",
 			"name": "Launch Program",
-			"skipFiles": ["<node_internals>/**"],
+			"skipFiles": [
+				"<node_internals>/**"
+			],
+			"cwd": "${workspaceRoot}",
 			"preLaunchTask": "build",
 			"program": "${workspaceFolder}/src/index.ts",
-			"outFiles": ["${workspaceFolder}/dist/bundle.js"],
-			"console": "integratedTerminal",
-			"sourceMaps": true
+			"outFiles": [
+				"${workspaceFolder}/dist/**/*.js"
+			],
+			"console": "internalConsole",
+			"sourceMaps": true,
+			"smartStep": true
 		}
 	]
 }

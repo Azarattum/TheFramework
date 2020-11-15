@@ -1,5 +1,5 @@
 import { IComponent, IComponentType } from "./component.interface";
-import Utils, { LogType } from "./utils.class";
+import { log, LogType } from "./utils.class";
 import Exposer from "./exposer.class";
 
 /**
@@ -73,7 +73,7 @@ export default abstract class Application {
 		...configs: [IComponentType, ...any[]][]
 	): Promise<void> {
 		let exceptions = 0;
-		if (this.logging) Utils.log("Initializtion started...");
+		if (this.logging) log("Initializtion started...");
 		//Apply configs
 		configs.forEach(x => {
 			this.configs.set(x.shift().valueOf(), x);
@@ -88,7 +88,7 @@ export default abstract class Application {
 					: (component.constructor as IComponentType).type;
 
 			if (this.logging && type != lastType) {
-				Utils.log(type, LogType.DIVIDER);
+				log(type, LogType.DIVIDER);
 				lastType = type;
 			}
 
@@ -100,14 +100,14 @@ export default abstract class Application {
 
 		//Log result
 		if (!this.logging) return;
-		Utils.log("", LogType.DIVIDER);
+		log("", LogType.DIVIDER);
 		if (exceptions) {
-			Utils.log(
+			log(
 				`Initialization completed with ${exceptions} exceptions!`,
 				LogType.WARNING
 			);
 		} else {
-			Utils.log("Successfyly initialized!", LogType.OK);
+			log("Successfyly initialized!", LogType.OK);
 		}
 	}
 
@@ -122,7 +122,7 @@ export default abstract class Application {
 
 		clearTimeout(this.refresher);
 		this.refresher = setTimeout(() => {
-			if (this.logging) Utils.log("Refreshing components...");
+			if (this.logging) log("Refreshing components...");
 
 			//Find all the relevant relations
 			const relations: Map<IComponentType, object[]> = new Map();
@@ -161,10 +161,7 @@ export default abstract class Application {
 			});
 			const after = this.components.length;
 			if (this.logging && before != after) {
-				Utils.log(
-					`${before - after} composents were closed!`,
-					LogType.OK
-				);
+				log(`${before - after} composents were closed!`, LogType.OK);
 			}
 
 			//Create missing components
@@ -183,8 +180,8 @@ export default abstract class Application {
 	public async close(): Promise<void> {
 		if (!this.initialized) return;
 		if (this.logging) {
-			Utils.log("", LogType.DIVIDER);
-			Utils.log("Closing all components...");
+			log("", LogType.DIVIDER);
+			log("Closing all components...");
 		}
 
 		let exceptions = 0;
@@ -196,11 +193,11 @@ export default abstract class Application {
 				}
 
 				if (this.logging) {
-					Utils.log(`${component.name} closed!`, LogType.OK);
+					log(`${component.name} closed!`, LogType.OK);
 				}
 			} catch (exception) {
 				if (this.logging) {
-					Utils.log(
+					log(
 						`${component.name} closing exception:\n\t` +
 							`${exception.stack.replace(/\n/g, "\n\t")}`,
 						LogType.ERROR
@@ -215,15 +212,12 @@ export default abstract class Application {
 
 		//Log result
 		if (!this.logging) return;
-		Utils.log("", LogType.DIVIDER);
+		log("", LogType.DIVIDER);
 
 		if (exceptions) {
-			Utils.log(
-				`Stopped with ${exceptions} exceptions!`,
-				LogType.WARNING
-			);
+			log(`Stopped with ${exceptions} exceptions!`, LogType.WARNING);
 		} else {
-			Utils.log("Successfyly stopped!", LogType.OK);
+			log("Successfyly stopped!", LogType.OK);
 		}
 	}
 
@@ -293,12 +287,12 @@ export default abstract class Application {
 
 			//Log result
 			if (!this.logging) return true;
-			Utils.log(`${component.name} initialized!`, LogType.OK);
+			log(`${component.name} initialized!`, LogType.OK);
 			return true;
 		} catch (exception) {
 			//Log error
 			if (!this.logging) return false;
-			Utils.log(
+			log(
 				`${component.name} initialization exception:\n\t` +
 					`${exception.stack.replace(/\n/g, "\n\t")}`,
 				LogType.ERROR
@@ -329,7 +323,7 @@ export default abstract class Application {
 		} catch (exception) {
 			if (!this.logging) return null;
 
-			Utils.log(
+			log(
 				`${component.name} creation exception:\n\t` +
 					`${exception.stack.replace(/\n/g, "\n\t")}`,
 				LogType.ERROR

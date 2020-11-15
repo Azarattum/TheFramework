@@ -157,6 +157,14 @@ export default class Utils {
 
 		return data;
 	}
+
+	/**
+	 * Promise based delay function. Wrapper over setTimeout
+	 * @param ms Time in milliseconds
+	 */
+	public static async sleep(ms: number): Promise<void> {
+		return new Promise(resolve => setTimeout(resolve, ms));
+	}
 }
 
 /**
@@ -169,3 +177,11 @@ export enum LogType {
 	ERROR,
 	DIVIDER
 }
+
+//Shortcuts for exports
+const log = Utils.log;
+const format = Utils.format;
+const generateID = Utils.generateID;
+const convertTo = Utils.convertTo;
+const sleep = Utils.sleep;
+export { log, format, generateID, convertTo, sleep };

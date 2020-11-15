@@ -111,4 +111,21 @@ describe("Utils", () => {
 		expect(Utils.convertTo([1], "lol")).toEqual([NaN]);
 		expect(Utils.convertTo([1, "tst"], "lol")).toEqual(["lol"]);
 	});
+
+	/*
+	 * Test utils conversion function
+	 */
+	it("sleep", async () => {
+		let value = 0;
+		const test = async (): Promise<void> => {
+			await Utils.sleep(0);
+			value = 1;
+		};
+
+		expect(value).toBe(0);
+		test();
+		expect(value).toBe(0);
+		await Utils.sleep(1);
+		expect(value).toBe(1);
+	});
 });

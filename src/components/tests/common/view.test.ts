@@ -1,14 +1,5 @@
+import { sleep } from "../../common/utils.class";
 import View from "../../common/view.abstract";
-
-/**
- * Promise based delay function
- * @param delay Delay in milliseconds
- */
-const delay = async (delay: number): Promise<void> => {
-	return new Promise(resolve => {
-		setTimeout(resolve, delay);
-	});
-};
 
 describe("View", () => {
 	/**
@@ -39,7 +30,7 @@ describe("View", () => {
 		);
 
 		document.body.innerHTML = "<view-empty></view-empty>";
-		await delay(100);
+		await sleep(100);
 		expect(refresh).toBeCalled();
 	});
 
@@ -103,7 +94,7 @@ describe("View", () => {
 		view.dataset.test = "21";
 
 		//Expect rerender
-		await delay(100);
+		await sleep(100);
 		expect(refresh).toBeCalledTimes(2);
 		expect(document.querySelector("div")?.textContent).toBe(
 			"something: 21"

@@ -1,4 +1,5 @@
 import Binding from "../../common/binding.class";
+import { sleep } from "../../common/utils.class";
 
 const container = document.createElement("div");
 let bind: Binding;
@@ -6,16 +7,6 @@ let bind: Binding;
 /**Id selector shortcut */
 const $ = (id: string): HTMLElement => {
 	return container.querySelector("#" + id) as HTMLElement;
-};
-
-/**
- * Promise based delay function
- * @param delay Delay in milliseconds
- */
-const delay = async (delay: number): Promise<void> => {
-	return new Promise(resolve => {
-		setTimeout(resolve, delay);
-	});
 };
 
 describe("Binding", () => {
@@ -115,7 +106,7 @@ describe("Binding", () => {
 		<data-text id="a2ctest" bind-a.2.c.test bind="a.2.c.test"></data-text>
 		`;
 
-		await delay(0);
+		await sleep(0);
 
 		expect(bind.get("a")).toEqual(expected);
 		expect($("a").innerHTML).toBe(JSON.stringify(expected));
@@ -186,7 +177,7 @@ describe("Binding", () => {
 		</template>
 		`;
 
-		await delay(0);
+		await sleep(0);
 
 		expect(container.getElementsByTagName("div").length).toBe(5);
 		for (const i of [1, 2, 3, 4, 5]) {
@@ -242,7 +233,7 @@ describe("Binding", () => {
 		</template>
 		`;
 
-		await delay(0);
+		await sleep(0);
 
 		expect(container.getElementsByTagName("div").length).toBe(3);
 		for (const key in object) {
@@ -365,7 +356,7 @@ describe("Binding", () => {
 		</template>
 		`;
 
-		await delay(0);
+		await sleep(0);
 
 		expect(container.getElementsByTagName("div").length).toBe(3);
 		for (const i of [1, 2, 3]) {
@@ -400,7 +391,7 @@ describe("Binding", () => {
 		<p bind="{&quot;id&quot;: &quot;'c'&quot;}"></p>
 		`;
 
-		await delay(0);
+		await sleep(0);
 
 		expect($("a").innerHTML).toBe("4");
 		expect($("b").innerHTML).toBe("test");
@@ -530,7 +521,7 @@ describe("Binding", () => {
 		<data-text id="b1" bind-b.1="2" bind="b.1"></data-text>
 		`;
 
-		await delay(0);
+		await sleep(0);
 
 		expect($("a0").innerHTML).toBe("1");
 		expect($("a1").innerHTML).toBe("2");
@@ -591,7 +582,7 @@ describe("Binding", () => {
 		<div id="k" test="" bind-test2 bind-test1 bind='{"test": "test2+test1"}'></div>
 		`;
 
-		await delay(0);
+		await sleep(0);
 
 		//Test value sync for newly added elements
 		expect(bind.get("test1")).toBe("<br>initial");
@@ -623,7 +614,7 @@ describe("Binding", () => {
 		//Test attrubute sync
 		$("f")?.setAttribute("bind-test1", "updated");
 
-		await delay(0);
+		await sleep(0);
 
 		expect(bind.get("test1")).toBe("updated");
 
@@ -649,11 +640,11 @@ describe("Binding", () => {
 
 		expect(element.innerHTML).toBe("updated");
 		element.setAttribute("bind-test1", "removed");
-		await delay(0);
+		await sleep(0);
 		expect(bind.get("test1")).toBe("updated");
 
 		bind.set("test1", "newvalue");
-		await delay(0);
+		await sleep(0);
 		expect(element.innerHTML).toBe("updated");
 	});
 
@@ -669,7 +660,7 @@ describe("Binding", () => {
 		<input id="r" type="radio" name="r" bind-input bind='{"checked": "!!input"}'>
 		<input id="r2" type="radio" name="r"'>
 		`;
-		await delay(0);
+		await sleep(0);
 
 		const input = $("i") as HTMLInputElement;
 
@@ -679,7 +670,7 @@ describe("Binding", () => {
 
 		input.value = "text";
 		input.dispatchEvent(new Event("input"));
-		await delay(0);
+		await sleep(0);
 
 		expect(input.getAttribute("bind-input")).toBe("text");
 		expect(input.value).toBe("text");
@@ -699,7 +690,7 @@ describe("Binding", () => {
 
 		checkbox.checked = false;
 		checkbox.dispatchEvent(new Event("input"));
-		await delay(0);
+		await sleep(0);
 
 		expect($("t").innerHTML).toBe("");
 		expect($("i").getAttribute("bind-input")).toBe("");
@@ -711,7 +702,7 @@ describe("Binding", () => {
 
 		checkbox.checked = true;
 		checkbox.dispatchEvent(new Event("input"));
-		await delay(0);
+		await sleep(0);
 
 		expect($("t").innerHTML).toBe("true");
 		expect($("i").getAttribute("bind-input")).toBe("true");
@@ -723,7 +714,7 @@ describe("Binding", () => {
 
 		radio2.checked = true;
 		radio2.dispatchEvent(new Event("input"));
-		await delay(0);
+		await sleep(0);
 
 		expect($("t").innerHTML).toBe("");
 		expect($("i").getAttribute("bind-input")).toBe("");
@@ -755,7 +746,7 @@ describe("Binding", () => {
 		expect(bind.get("text")).toBe("");
 		expect($("text").innerHTML).toBe("");
 
-		await delay(2);
+		await sleep(2);
 
 		expect(bind.get("text")).toBe('"First line\nSecond line"');
 		expect($("text").innerHTML).toBe('"First line\nSecond line"');

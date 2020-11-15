@@ -1,4 +1,4 @@
-import Utils, { LogType } from "../../common/utils.class";
+import { log, LogType } from "../../common/utils.class";
 import Controller from "../../common/controller.abstract";
 
 /**
@@ -22,7 +22,7 @@ export default class Offliner extends Controller<"">() {
 				await navigator.serviceWorker.register("service-worker.js");
 			} catch {
 				//Failed to register
-				Utils.log("Service Worker is disabled.", LogType.WARNING);
+				log("Service Worker is disabled.", LogType.WARNING);
 			}
 		}
 	}

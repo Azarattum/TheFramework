@@ -15,10 +15,6 @@ describe("Controller", () => {
 			public method(): any {
 				//Do nothing
 			}
-
-			public static get relations(): null {
-				return null;
-			}
 		}
 
 		const callback1 = jest.fn();

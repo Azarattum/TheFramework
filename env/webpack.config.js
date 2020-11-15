@@ -50,7 +50,6 @@ module.exports = {
 	},
 	output: {
 		filename: "bundle.js",
-		pathinfo: false,
 		path: Path.resolve(__dirname, "../dist"),
 		devtoolModuleFilenameTemplate: "[absolute-resource-path]"
 	},

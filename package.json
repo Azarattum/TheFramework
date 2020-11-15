@@ -2,8 +2,8 @@
 	"scripts": {
 		"start": "node_modules/.bin/webpack-dev-server --config env/webpack.config.js",
 		"release": "node_modules/.bin/webpack-cli -p --progress --config env/webpack.config.js",
-		"build": "node_modules/.bin/webpack-cli -d --progress --config env/webpack.config.js",
-		"watch": "node_modules/.bin/webpack-cli -d -w --config env/webpack.config.js",
+		"build": "node_modules/.bin/webpack-cli --progress --config env/webpack.config.js",
+		"watch": "node_modules/.bin/webpack-cli -w --config env/webpack.config.js",
 		"test": "jest --config env/jest.config.js",
 		"coverage": "jest --coverage --config env/jest.config.js"
 	},

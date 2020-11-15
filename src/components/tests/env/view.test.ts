@@ -1,4 +1,4 @@
-import viewLoad from "./view.loader";
+import viewLoad from "../../../../env/view.loader";
 const pugLoad = require("pug-loader") as (source: string) => string;
 
 async function load(source: string): Promise<HTMLElement> {

@@ -17,9 +17,9 @@ export default function Service<T extends string>() {
 		/**Service name */
 		public readonly name: string;
 		/**Event resolution callback */
-		private resolve: Function | null;
+		private resolve: Function | -1;
 		/**Events queue */
-		private events: { type: string; args: any[] }[];
+		private events: { type: T; args: any[] }[];
 		/**Map to all exposed functions */
 		private exposed: Map<string, Function>;
 
@@ -30,7 +30,7 @@ export default function Service<T extends string>() {
 			this.uuid = Utils.generateID();
 			this.name = this.constructor.name;
 			this.exposed = new Map();
-			this.resolve = null;
+			this.resolve = -1;
 			this.events = [];
 		}
 
@@ -47,9 +47,9 @@ export default function Service<T extends string>() {
 		 * @param args Arguments to pass to callbacks
 		 */
 		protected emit(type: T, ...args: any[]): void {
-			if (this.resolve) {
+			if (this.resolve !== -1) {
 				this.resolve({ type, args });
-				this.resolve = null;
+				this.resolve = -1;
 				return;
 			}
 
@@ -60,8 +60,8 @@ export default function Service<T extends string>() {
 		 * Returns a promise of the next emitted event.
 		 * Used by proxy wrapper, should not be used anywhere else!
 		 */
-		private async listen(): Promise<any> {
-			const event = new Promise(resolve => {
+		private async listen(): Promise<{ type: T; args: any[] }> {
+			const event = new Promise<{ type: T; args: any[] }>(resolve => {
 				if (this.events.length) {
 					resolve(this.events.shift());
 					return;
@@ -123,7 +123,7 @@ export default function Service<T extends string>() {
 		 */
 		public async close() {
 			this.exposed.clear();
-			this.resolve = null;
+			this.resolve = -1;
 			this.events = [];
 			self?.close();
 		}

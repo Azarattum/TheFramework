@@ -14,12 +14,14 @@ module.exports = source => {
 
 	return (
 		source +
+		";\n" +
 		ServiceWrapper.toString() +
 		wrap.toString() +
 		"module.exports = wrap(module.exports);"
 	);
 };
 
+/* istanbul ignore next */
 /**
  * Wraps given object into proxy
  * @param {Object} object Target object
@@ -69,6 +71,7 @@ function wrap(object) {
 	return wrapping;
 }
 
+/* istanbul ignore next */
 /**
  * Wrapper aroung service in a worker
  */

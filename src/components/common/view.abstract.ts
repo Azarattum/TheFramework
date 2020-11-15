@@ -72,7 +72,7 @@ export default function View(template: Function) {
 			const result = template.toString().match(regexp);
 			let dataPoints: string[] = [];
 			if (result) {
-				dataPoints = result[1]?.replace(/ /g, "")?.split(",") || [];
+				dataPoints = result[1].replace(/ /g, "").split(",");
 			}
 
 			const view = this;
@@ -82,7 +82,6 @@ export default function View(template: Function) {
 					/**View's universal unique id */
 					public readonly uuid: string;
 					private renderHandle?: number;
-					private reflectionHandle?: number;
 
 					/**
 					 * Custom element constructor
@@ -101,7 +100,6 @@ export default function View(template: Function) {
 						//Debounce render execution
 						clearTimeout(this.renderHandle);
 						this.renderHandle = setTimeout(() => {
-							cancelAnimationFrame(this.reflectionHandle || -1);
 							const args: Record<string, any> = {
 								uuid: this.uuid
 							};
@@ -110,35 +108,15 @@ export default function View(template: Function) {
 							for (const key in this.dataset) {
 								args[key] = this.dataset[key];
 							}
+							const html = template(args);
 
 							//Render view
-							this.innerHTML = template(args);
+							this.innerHTML = html;
 							setTimeout(() => {
 								view.resolveRender?.();
 								view.refreshCallback();
 							});
 						});
-					}
-
-					/**
-					 * Instant reflect a new value onto the page,
-					 * for simple rendering cases (no expressions etc.)
-					 * @param name Data variable name
-					 * @param value New value
-					 */
-					private reflect(name: string, value: string) {
-						cancelAnimationFrame(this.reflectionHandle || -1);
-						this.reflectionHandle = requestAnimationFrame(
-							async () => {
-								this.querySelectorAll(
-									`data-text[bind="${name}"]`
-								).forEach(x => (x.textContent = value));
-
-								this.querySelectorAll(
-									`data-html[bind="${name}"]`
-								).forEach(x => (x.innerHTML = value));
-							}
-						);
 					}
 
 					/**
@@ -163,9 +141,8 @@ export default function View(template: Function) {
 						oldValue: string,
 						newValue: string
 					) {
-						this.render();
 						if (!name) return;
-						this.reflect(name.replace("data-", ""), newValue);
+						this.render();
 					}
 				}
 			);
@@ -176,6 +153,15 @@ export default function View(template: Function) {
 		 */
 		public static get relations(): null {
 			return null;
+		}
+
+		/**
+		 * Remove all the view created elements when closed
+		 */
+		public close() {
+			this.containers.forEach(x => {
+				x.parentElement?.removeChild(x);
+			});
 		}
 	}
 

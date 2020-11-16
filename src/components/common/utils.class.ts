@@ -109,7 +109,7 @@ export default class Utils {
 				: BigInt(Number.parseInt(data));
 		} else if (typeof proto === "function") {
 			return typeof data === "function" ? data : (): any => data;
-		} else if (typeof proto === "object") {
+		} else if (typeof proto === "object" && proto !== null) {
 			if (typeof data === "string") {
 				try {
 					data = JSON.parse(data);
@@ -122,7 +122,7 @@ export default class Utils {
 					(x: any) => typeof x === typeof proto[0]
 				);
 
-				if (typeof data === "object") {
+				if (typeof data === "object" && data !== null) {
 					if (!Array.isArray(data)) data = Object.values(data);
 					const converted: any[] = [];
 
@@ -139,7 +139,7 @@ export default class Utils {
 					return [unitype ? Utils.convertTo(proto[0], data) : data];
 				}
 			} else {
-				if (typeof data === "object") {
+				if (typeof data === "object" && data !== null) {
 					const converted: Record<any, any> = Object.create(
 						Object.getPrototypeOf(proto)
 					);

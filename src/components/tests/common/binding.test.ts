@@ -133,11 +133,16 @@ describe("Binding", () => {
 				<data-text bind-val bind="val"></data-text>
 				<data-text bind-key bind="key"></data-text>
 			</div>
+			text
 		</template>
 		`;
 		bind = new Binding(container);
 
 		bind.set("arr", [1, 2, 3, 4, 5]);
+		expect(container.getElementsByTagName("span").length).toBe(5);
+		for (const span of container.getElementsByTagName("span")) {
+			expect(span.textContent?.trim()).toBe("text");
+		}
 		expect(container.getElementsByTagName("div").length).toBe(5);
 		for (const i of [1, 2, 3, 4, 5]) {
 			const div = $("d" + i);
@@ -148,6 +153,7 @@ describe("Binding", () => {
 		}
 
 		bind.set("arr", [1, 2, 3, 4]);
+		expect(container.getElementsByTagName("span").length).toBe(4);
 		expect(container.getElementsByTagName("div").length).toBe(4);
 		for (const i of [1, 2, 3, 4]) {
 			const div = $("d" + i);
@@ -158,6 +164,7 @@ describe("Binding", () => {
 		}
 
 		bind.set("arr", [1, 2, 3, 4, 5]);
+		expect(container.getElementsByTagName("span").length).toBe(5);
 		expect(container.getElementsByTagName("div").length).toBe(5);
 		for (const i of [1, 2, 3, 4, 5]) {
 			const div = $("d" + i);
@@ -174,11 +181,13 @@ describe("Binding", () => {
 				<data-text bind-val bind="val"></data-text>
 				<data-text bind-key bind="key"></data-text>
 			</div>
+			text
 		</template>
 		`;
 
 		await sleep(0);
 
+		expect(container.getElementsByTagName("span").length).toBe(5);
 		expect(container.getElementsByTagName("div").length).toBe(5);
 		for (const i of [1, 2, 3, 4, 5]) {
 			const div = $("d" + i);
@@ -758,5 +767,68 @@ describe("Binding", () => {
 
 		bind2.close();
 		bind.close();
+	});
+
+	/**
+	 * Test binding exceptions
+	 */
+	it("exceptions", async () => {
+		container.innerHTML = `
+			<template each bind="arr" value="val">
+				<data-text bind-val bind="val"></data-text>
+			</template>
+		`;
+
+		bind = new Binding(container);
+		const badKey = jest.fn(() => {
+			bind.set("arr", { "<>/": 1 });
+		});
+
+		expect(badKey).toThrowError();
+
+		container.innerHTML = `
+			<div id="json" bind-json bind="{}">
+		`;
+		await sleep(0);
+
+		const badJSON = jest.fn(() => {
+			$("json").setAttribute("bind", "not a JSON");
+			bind.set("json", "1");
+		});
+
+		expect(badJSON).toThrowError();
+
+		const badRead = jest.fn(() => {
+			bind.set("str", "str");
+			bind.get("str.hello");
+		});
+
+		expect(badRead).toThrowError();
+
+		//Unlike read, bad write should be allowed
+		const badWrite = jest.fn(() => {
+			bind.set("str", "str");
+			bind.set("str.hello", "hey");
+		});
+
+		expect(badWrite).not.toThrowError();
+	});
+
+	/**
+	 * Test trying to overring object with something like string.
+	 * That should just make an empty object.
+	 */
+	it("objectsOverride", async () => {
+		container.innerHTML = `
+			<data-text bind-obj bind="obj"></data-text>
+		`;
+		await sleep(0);
+
+		bind.set("obj", {});
+		bind.set("obj", '{"a": 1}');
+
+		expect(bind.get("obj.a")).toBe("1");
+		bind.set("obj", "str");
+		expect(bind.get("obj")).toEqual({});
 	});
 });

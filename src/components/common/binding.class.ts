@@ -28,10 +28,8 @@ export default class Binding {
 		this.handler = (mutationsList, observer): void => {
 			for (const mutation of mutationsList) {
 				//Add deleted/add node in elemets
-				if (mutation.type === "childList") {
-					this.updateElements(mutation.addedNodes, true);
-					this.updateElements(mutation.removedNodes, false);
-				}
+				this.updateElements(mutation.addedNodes, true);
+				this.updateElements(mutation.removedNodes, false);
 			}
 		};
 
@@ -610,14 +608,10 @@ export default class Binding {
 			//When trying to override object
 			if (typeof dest === "object") {
 				try {
-					const parsed = JSON.parse(value);
-					if (typeof parsed === "object") {
-						value = parsed;
-					} else {
-						throw "";
-					}
+					const parsed = this.makeDataObject(JSON.parse(value));
+					value = parsed;
 				} catch {
-					//Do nothing
+					value = {};
 				}
 			}
 		}

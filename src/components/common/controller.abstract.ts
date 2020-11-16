@@ -269,14 +269,16 @@ export function bind(...args: any[]): any {
 
 		let object = target[key];
 		let proxy =
-			typeof object == "object" ? new Proxy(object, handler) : object;
+			typeof object == "object" && object !== null
+				? new Proxy(object, handler)
+				: object;
 
 		const getter = () => {
 			return proxy;
 		};
 		const setter = (value: any) => {
 			object = value;
-			if (typeof value == "object") {
+			if (typeof value == "object" && value !== null) {
 				proxy = new Proxy(object, handler);
 			} else {
 				proxy = object;
@@ -291,12 +293,14 @@ export function bind(...args: any[]): any {
 		//Hook onto controller's initialize method to do more stuff
 		const original = target.initialize;
 		target.initialize = function(...args: any[]): any {
+			if (!this.binding) return original.bind(this)(...args);
+
 			//Update hook
 			const setValue = (
 				name: string = path || key.toLowerCase(),
 				value: any = object
 			) => {
-				this.binding?.set(name, value);
+				this.binding.set(name, value);
 				debounce = -1;
 			};
 			update = (name?: string, value?: any) => {
@@ -304,15 +308,14 @@ export function bind(...args: any[]): any {
 					setValue(name, value);
 				});
 			};
-			if (proxy == null && this.binding) {
-				setTimeout(() => {
-					//Update proxy value
-					object = this.binding?.get(path);
-					proxy =
-						typeof object == "object"
-							? new Proxy(object, handler)
-							: object;
-				});
+			//Property is undefined
+			if (proxy == null) {
+				//Update proxy value
+				object = this.binding.get(path);
+				proxy =
+					typeof object == "object" && object !== null
+						? new Proxy(object, handler)
+						: object;
 			} else {
 				setValue();
 			}
@@ -320,11 +323,12 @@ export function bind(...args: any[]): any {
 			//Data-set hook
 			setTimeout(() => {
 				if (!this.binding) return;
-
+				//Save real binding set function
 				const realSet = this.binding.set.bind(this.binding);
+
 				const hook = (name: string, value?: any, mode?: number) => {
 					//Hook only for the path
-					if (name === path) {
+					if (name === path && value !== object) {
 						//Fetch value for default update
 						if (value === undefined) {
 							value = this.binding.get(path);
@@ -333,7 +337,7 @@ export function bind(...args: any[]): any {
 						//Update proxy value
 						object = Utils.convertTo(object, value);
 						proxy =
-							typeof object == "object"
+							typeof object == "object" && object !== null
 								? new Proxy(object, handler)
 								: object;
 					}
@@ -354,6 +358,7 @@ export function bind(...args: any[]): any {
 	}
 }
 
+/* istanbul ignore next */
 if (typeof globalThis === "undefined") {
 	(window as any).globalThis = window;
 }
@@ -364,7 +369,7 @@ if (typeof globalThis === "undefined") {
 	{},
 	{
 		get: (obj: {}, prop: string) => {
-			if (!event) return;
+			if (!("event" in globalThis) || !event) return;
 			let node = event.target as HTMLElement | null;
 			let element: HTMLElement | null = null;
 			let controller = null;

@@ -18,15 +18,20 @@ export default class Hasher extends Controller<"loaded">() {
 	 * Initializes URL Hash object
 	 * @param {Object} defaults Default values for hash
 	 */
-	public initialize(defaults: { [property: string]: any }): void {
+	public initialize(defaults: { [property: string]: any } = {}): void {
 		const properties: { [name: string]: string } = {};
+		//Get all existing properties
+		window.location.hash
+			.slice(1)
+			.split(",")
+			.forEach(prop => {
+				const [key, value] = prop.split(":");
+				if (key === undefined || value === undefined) return;
+				properties[key] = value;
+			});
 
 		for (const key in defaults) {
-			const existing = this.get(key);
-			if (existing) {
-				properties[key] = existing;
-				continue;
-			}
+			if (key in properties) continue;
 
 			const value = defaults[key];
 			this.set(key, value.toString());

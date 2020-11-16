@@ -608,47 +608,6 @@ describe("Binding", () => {
 	});
 
 	/**
-	 * Test sync for inserted nodes' attributes
-	 */
-	it("attributesSync", async () => {
-		//Test attrubute sync
-		$("f")?.setAttribute("bind-test1", "updated");
-
-		await sleep(0);
-
-		expect(bind.get("test1")).toBe("updated");
-
-		bind.set("test1");
-		expect($("a")?.innerHTML).toBe("updated");
-		expect($("b")?.innerHTML).toBe("updated");
-		expect($("c")?.innerHTML).toBe("updated");
-		expect($("d")?.getAttribute("test")).toBe("updated");
-		expect($("e")?.getAttribute("test")).toBe("updated");
-		expect($("f")?.innerHTML).toBe("updated");
-		expect($("g")?.innerHTML).toBe("updated");
-		expect($("h")?.getAttribute("test")).toBe("updated");
-		expect($("k")?.getAttribute("test")).toBe("2updated");
-	});
-
-	/**
-	 * Test that removed from DOM elements are no longer tracked
-	 */
-	it("unsyncRemovedElements", async () => {
-		//Test attrubute sync
-		const element = $("f");
-		element.remove();
-
-		expect(element.innerHTML).toBe("updated");
-		element.setAttribute("bind-test1", "removed");
-		await sleep(0);
-		expect(bind.get("test1")).toBe("updated");
-
-		bind.set("test1", "newvalue");
-		await sleep(0);
-		expect(element.innerHTML).toBe("updated");
-	});
-
-	/**
 	 * Test data binding with text-like input elements
 	 */
 	it("textInputsSync", async () => {
@@ -750,5 +709,54 @@ describe("Binding", () => {
 
 		expect(bind.get("text")).toBe('"First line\nSecond line"');
 		expect($("text").innerHTML).toBe('"First line\nSecond line"');
+		bind.close();
+	});
+
+	/**
+	 * Test for nested bind containers.
+	 * The should have independent state,
+	 * however parents still affect DOM of children
+	 */
+	it("nestedContainers", async () => {
+		container.innerHTML = `
+			<data-text id="text1" bind-text="1" bind="text"></data-text>
+		`;
+		const second = document.createElement("div");
+		second.innerHTML = `
+			<data-text id="text2" bind-text="2" bind="text"></data-text>
+		`;
+		container.appendChild(second);
+
+		bind = new Binding(container);
+		bind.set("text", "1");
+		const bind2 = new Binding(second);
+		bind2.set("text", "2");
+
+		expect($("text1").textContent).toBe("1");
+		expect($("text2").textContent).toBe("2");
+
+		await sleep(0);
+
+		expect(bind.get("text")).toBe("1");
+		expect(bind2.get("text")).toBe("2");
+
+		bind.set("text", "3");
+		await sleep(0);
+
+		expect($("text1").textContent).toBe("3");
+		expect($("text2").textContent).toBe("3");
+		expect(bind.get("text")).toBe("3");
+		expect(bind2.get("text")).toBe("2");
+
+		bind2.set("text", "4");
+		await sleep(0);
+
+		expect($("text1").textContent).toBe("3");
+		expect($("text2").textContent).toBe("4");
+		expect(bind.get("text")).toBe("3");
+		expect(bind2.get("text")).toBe("4");
+
+		bind2.close();
+		bind.close();
 	});
 });

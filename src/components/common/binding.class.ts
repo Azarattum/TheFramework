@@ -25,8 +25,6 @@ export default class Binding {
 		this.elements = new Map();
 		this.data = {};
 
-		this.updateElements(container.querySelectorAll(`[bind]`), true);
-
 		this.handler = (mutationsList, observer): void => {
 			for (const mutation of mutationsList) {
 				//Add deleted/add node in elemets
@@ -34,38 +32,17 @@ export default class Binding {
 					this.updateElements(mutation.addedNodes, true);
 					this.updateElements(mutation.removedNodes, false);
 				}
-				//Update the value if an attribute has been changed
-				else if (mutation.type === "attributes") {
-					if (!mutation.attributeName?.startsWith("bind-")) continue;
-					if (
-						mutation.target.nodeType == Node.ELEMENT_NODE &&
-						(mutation.target as HTMLElement).tagName ==
-							"TEMPLATE" &&
-						(mutation.target as HTMLElement).hasAttribute("each")
-					) {
-						continue;
-					}
-
-					const path = mutation.attributeName.replace("bind-", "");
-					const value = (mutation.target as HTMLElement).getAttribute(
-						`bind-${path}`
-					);
-
-					if (mutation.oldValue != value) {
-						this.updateData(path, value || "");
-					}
-				}
 			}
 		};
 
 		//Observe changes in the container
 		this.observer = new MutationObserver(this.handler);
 		this.observer.observe(this.container, {
-			attributes: true,
 			childList: true,
-			subtree: true,
-			attributeOldValue: true
+			subtree: true
 		});
+
+		this.updateElements(container.querySelectorAll(`[bind]`), true);
 	}
 
 	/**
@@ -170,8 +147,8 @@ export default class Binding {
 							const valExp = exp.replace(
 								this.varRegex(path),
 								`"${value
-									.replace(/"/g, '\\"')
-									.replace(/\\/g, "\\\\")}"`
+									.replace(/\\/g, "\\\\")
+									.replace(/"/g, '\\"')}"`
 							);
 							if (exp == valExp) return;
 							this.set(path, eval(valExp));

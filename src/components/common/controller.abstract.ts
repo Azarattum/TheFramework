@@ -246,45 +246,50 @@ export function bind(...args: any[]): any {
 	let path: string | null = null;
 	const decorator = function(target: any, key: string): void {
 		if (!path) path = key.toLowerCase();
-		let debounce = -1;
-		// eslint-disable-next-line @typescript-eslint/no-empty-function
-		let update: (name?: string, value?: any) => void = () => {};
+		const debounces: Map<any, number> = new Map();
+		const updates: Map<
+			any,
+			(name?: string, value?: any) => void
+		> = new Map();
 
 		//Proxy for objects handler
 		const handler: ProxyHandler<any> = {
 			get: function(target, prop, receiver) {
 				const result = Reflect.get(target, prop, receiver);
-				clearTimeout(debounce);
-				update();
+				clearTimeout(debounces.get(this));
+				updates.get(this)?.();
 				return result;
 			},
 			set: function(target, prop, value) {
 				const result = Reflect.set(target, prop, value);
-				if (debounce == -1) {
-					update(`${path}.${prop.toString()}`, value);
+				if (debounces.get(this) === undefined) {
+					updates.get(this)?.(`${path}.${prop.toString()}`, value);
 				}
 				return result;
 			}
 		};
 
-		let object = target[key];
-		let proxy =
-			typeof object == "object" && object !== null
-				? new Proxy(object, handler)
-				: object;
+		const objects: Map<any, any> = new Map();
+		const proxies: Map<any, any> = new Map();
 
-		const getter = () => {
-			return proxy;
+		const getter = function(this: any) {
+			return proxies.get(this);
 		};
-		const setter = (value: any) => {
-			object = value;
+		const setter = function(this: any, value: any) {
+			objects.set(this, value);
 			if (typeof value == "object" && value !== null) {
-				proxy = new Proxy(object, handler);
+				proxies.set(
+					this,
+					new Proxy(value, {
+						set: handler.set?.bind(this),
+						get: handler.get?.bind(this)
+					})
+				);
 			} else {
-				proxy = object;
+				proxies.set(this, value);
 			}
-			clearTimeout(debounce);
-			update();
+			clearTimeout(debounces.get(this));
+			updates.get(this)?.();
 		};
 
 		//Redefine getter and setter for this property
@@ -292,30 +297,39 @@ export function bind(...args: any[]): any {
 
 		//Hook onto controller's initialize method to do more stuff
 		const original = target.initialize;
-		target.initialize = function(...args: any[]): any {
+		target.initialize = function(this: any, ...args: any[]): any {
 			if (!this.binding) return original.bind(this)(...args);
 
 			//Update hook
 			const setValue = (
 				name: string = path || key.toLowerCase(),
-				value: any = object
+				value: any = objects.get(this)
 			) => {
 				this.binding.set(name, value);
-				debounce = -1;
+				debounces.delete(this);
 			};
-			update = (name?: string, value?: any) => {
-				debounce = setTimeout(() => {
-					setValue(name, value);
-				});
-			};
+			updates.set(this, (name?: string, value?: any) => {
+				debounces.set(
+					this,
+					setTimeout(() => {
+						setValue(name, value);
+					})
+				);
+			});
 			//Property is undefined
-			if (proxy == null) {
+			if (proxies.get(this) == null) {
 				//Update proxy value
-				object = this.binding.get(path);
-				proxy =
+				const object = this.binding.get(path);
+				objects.set(this, object);
+				proxies.set(
+					this,
 					typeof object == "object" && object !== null
-						? new Proxy(object, handler)
-						: object;
+						? new Proxy(object, {
+								set: handler.set?.bind(this),
+								get: handler.get?.bind(this)
+						  })
+						: object
+				);
 			} else {
 				setValue();
 			}
@@ -328,18 +342,27 @@ export function bind(...args: any[]): any {
 
 				const hook = (name: string, value?: any, mode?: number) => {
 					//Hook only for the path
-					if (name === path && value !== object) {
+					if (name === path && value !== objects.get(this)) {
 						//Fetch value for default update
 						if (value === undefined) {
 							value = this.binding.get(path);
 						}
 
 						//Update proxy value
-						object = Utils.convertTo(object, value);
-						proxy =
+						const object = Utils.convertTo(
+							objects.get(this),
+							value
+						);
+						objects.set(this, object);
+						proxies.set(
+							this,
 							typeof object == "object" && object !== null
-								? new Proxy(object, handler)
-								: object;
+								? new Proxy(object, {
+										set: handler.set?.bind(this),
+										get: handler.get?.bind(this)
+								  })
+								: object
+						);
 					}
 					return realSet(name, value, mode);
 				};

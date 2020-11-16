@@ -79,14 +79,16 @@ describe("Utils", () => {
 		expect(Utils.convertTo(BigInt(1), "42")).toBe(BigInt(42));
 		expect(Utils.convertTo(BigInt(1), BigInt(99999))).toBe(BigInt(99999));
 
-		const func = (): any => {};
-		expect(Utils.convertTo(() => {}, func)).toBe(func);
-		expect(Utils.convertTo(() => {}, 4)()).toBe(4);
-		expect(Utils.convertTo(() => {}, "test")()).toBe("test");
+		const func = jest.fn();
+		expect(Utils.convertTo(jest.fn(), func)).toBe(func);
+		expect(Utils.convertTo(jest.fn(), 4)()).toBe(4);
+		expect(Utils.convertTo(jest.fn(), "test")()).toBe("test");
 
 		const obj = { a: 1 };
 		const obj2 = { b: 2 };
 		const obj3 = { a: "42" };
+		expect(Utils.convertTo(obj, undefined)).toBe(obj);
+		expect(Utils.convertTo(obj, null)).toBe(obj);
 		expect(Utils.convertTo(obj, "test")).toBe(obj);
 		expect(Utils.convertTo(obj, obj2)).toEqual({ a: 1, b: 2 });
 		expect(Utils.convertTo(obj, obj3)).toEqual({ a: 42 });
@@ -97,6 +99,8 @@ describe("Utils", () => {
 			b: 2
 		});
 
+		expect(Utils.convertTo([], null)).toEqual([null]);
+		expect(Utils.convertTo([], undefined)).toEqual([undefined]);
 		expect(Utils.convertTo([], [1, 2, 3])).toEqual([1, 2, 3]);
 		expect(Utils.convertTo([1], [1, 2, "3"])).toEqual([1, 2, 3]);
 		expect(Utils.convertTo([1, "2"], [1, 2, "3"])).toEqual([1, "2", "3"]);
@@ -110,6 +114,9 @@ describe("Utils", () => {
 		expect(Utils.convertTo(["1"], obj)).toEqual(["1"]);
 		expect(Utils.convertTo([1], "lol")).toEqual([NaN]);
 		expect(Utils.convertTo([1, "tst"], "lol")).toEqual(["lol"]);
+
+		expect(Utils.convertTo(null, [1, "2"])).toEqual([1, "2"]);
+		expect(Utils.convertTo(undefined, [1, "2"])).toEqual([1, "2"]);
 	});
 
 	/*

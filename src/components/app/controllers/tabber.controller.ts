@@ -15,7 +15,7 @@ export default class Tabber extends Controller<"changed">(Relation.Default) {
 		if (autoHide) {
 			this.container.querySelectorAll<HTMLElement>("[tab]").forEach(x => {
 				this.displays.set(x, getComputedStyle(x).display);
-				x.style.display = "none";
+				if (!x.hasAttribute("default")) x.style.display = "none";
 			});
 		}
 

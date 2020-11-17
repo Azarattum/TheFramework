@@ -32,6 +32,7 @@ export default class Router extends Controller<"navigated">(Relation.Default) {
 		});
 
 		this.navigate(this.path || defaultPath, true);
+		this.expose("navigate");
 	}
 
 	/**

@@ -12,6 +12,8 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 	public defaults: Record<string, string> = {};
 	/** Regular expression to data in location hash */
 	private hashExp = /(?<=#|^|\/)([^#:/]+:[^:,/]+,?)*$/;
+	/** On hash change event listener */
+	public listener: any = null;
 
 	/**
 	 * Initializes URL Hash object
@@ -19,7 +21,7 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 	 */
 	public initialize(defaults: Record<string, string> = {}): void {
 		//Register change event
-		window.addEventListener("hashchange", event => {
+		this.listener = (event: HashChangeEvent): void => {
 			if (!event.newURL.includes("#")) return;
 
 			const oldHash = event.oldURL
@@ -32,7 +34,8 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 			if (newHash == null) return;
 			if (oldHash?.toLowerCase() === newHash?.toLowerCase()) return;
 			this.emit("changed", this.properties);
-		});
+		};
+		addEventListener("hashchange", this.listener);
 
 		this.defaults = defaults;
 		//Fire load event
@@ -155,5 +158,15 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 		) {
 			throw new Error("Illegal characters in property!");
 		}
+	}
+
+	/**
+	 * Clears all hash data then closes
+	 */
+	public close(): void {
+		removeEventListener("hashchange", this.listener);
+		const state = location.hash.replace(this.hashExp, "");
+		history.replaceState(null, "", state);
+		super.close();
 	}
 }

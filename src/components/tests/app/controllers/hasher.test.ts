@@ -16,7 +16,7 @@ describe("Hasher", () => {
 			expect(props["important"]).toBe("!");
 			loaded();
 		});
-		hasher.initialize({ default: 42, important: "not" });
+		hasher.initialize({ default: "42", important: "not" });
 		expect(loaded).toBeCalled();
 		expect(hasher.get("init")).toBe("value");
 		expect(hasher.get("default")).toBe("42");

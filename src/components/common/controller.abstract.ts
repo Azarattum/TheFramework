@@ -51,7 +51,7 @@ export default function Controller<T extends string>(
 
 			return Array.from(
 				document.querySelectorAll(
-					`[controller=${this.name.toLowerCase()}]`
+					`[controller~=${this.name.toLowerCase()}]`
 				)
 			);
 		}

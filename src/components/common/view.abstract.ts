@@ -58,10 +58,10 @@ export default function View(template: Function) {
 		/**
 		 * Returns all the view-elements of current view
 		 */
-		public get containers(): NodeListOf<ViewElement> {
-			return document.querySelectorAll<ViewElement>(
+		public get containers(): HTMLCollectionOf<ViewElement> {
+			return document.getElementsByTagName(
 				`view-${this.name.toLowerCase()}`
-			);
+			) as HTMLCollectionOf<ViewElement>;
 		}
 
 		/**
@@ -159,9 +159,9 @@ export default function View(template: Function) {
 		 * Remove all the view created elements when closed
 		 */
 		public close() {
-			this.containers.forEach(x => {
-				x.parentElement?.removeChild(x);
-			});
+			for (const container of this.containers) {
+				container.parentElement?.removeChild(container);
+			}
 		}
 	}
 

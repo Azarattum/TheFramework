@@ -29,6 +29,7 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 				.slice(event.newURL.indexOf("#"))
 				.match(this.hashExp)?.[0];
 
+			if (newHash == null) return;
 			if (oldHash?.toLowerCase() === newHash?.toLowerCase()) return;
 			this.emit("changed", this.properties);
 		});

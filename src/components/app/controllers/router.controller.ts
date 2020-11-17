@@ -2,7 +2,7 @@ import Controller, { Relation } from "../../common/controller.abstract";
 import { format } from "../../common/utils.class";
 
 /**
- * Example of a controller.
+ * Client-side router controller.
  */
 export default class Router extends Controller<"navigated">(Relation.Default) {
 	/**Format string for titles */
@@ -13,6 +13,8 @@ export default class Router extends Controller<"navigated">(Relation.Default) {
 	private title: string = document.title;
 	/**Regular expression to find url in location hash */
 	private readonly urlRegex = /(?<=#|^)(\/([-a-zA-Z0-9()@%_+.~?&//=]*)(\/|$))|(?<=#)\/?|^$/;
+	/**Default router path */
+	private defaultPath: string = "";
 
 	/**
 	 * Override relations to the document body
@@ -25,13 +27,14 @@ export default class Router extends Controller<"navigated">(Relation.Default) {
 	 * Initialization of Router controller
 	 * @param defaultPath Default path to navigate from the main page
 	 */
-	public initialize(defaultPath: string = "", titleFormat?: string): void {
+	public initialize(defaultPath?: string, titleFormat?: string): void {
 		this.titleFormat = titleFormat ?? this.titleFormat;
+		this.defaultPath = defaultPath ?? this.defaultPath;
 		window.addEventListener("popstate", event => {
 			this.navigate(this.path, true);
 		});
 
-		this.navigate(this.path || defaultPath, true);
+		this.navigate(this.path || this.defaultPath, true);
 		this.expose("navigate");
 	}
 
@@ -88,16 +91,16 @@ export default class Router extends Controller<"navigated">(Relation.Default) {
 
 	/**
 	 * Renders a specified route by showing/hiding elements
-	 * @param route Route path string array
+	 * @param routes Route path string array
 	 * @param container Root routing container
 	 */
 	private renderRoute(
-		route: string[],
+		routes: string[],
 		container: HTMLElement = this.container
 	): string | null {
 		let subtitle = "";
-		route = [...route];
-		const path = route.shift()?.toLowerCase();
+		const path = routes[0]?.toLowerCase();
+		const routeMap: Map<HTMLElement, string[]> = new Map();
 		const notFounds: HTMLElement[] = [];
 
 		//Find nodes to render
@@ -112,10 +115,9 @@ export default class Router extends Controller<"navigated">(Relation.Default) {
 					}
 
 					const route = node.getAttribute("route")?.toLowerCase();
-					if (
-						(path && route === path) ||
-						(!path && node.hasAttribute("default"))
-					) {
+					const result = this.parseRoute(route, routes);
+					if (result || (!path && node.hasAttribute("default"))) {
+						routeMap.set(node, result || []);
 						return NodeFilter.FILTER_ACCEPT;
 					} else if (route) {
 						if (route === "404") notFounds.push(node);
@@ -134,7 +136,9 @@ export default class Router extends Controller<"navigated">(Relation.Default) {
 			if (!(node instanceof HTMLElement)) continue;
 
 			//Recursively render subtree
-			const result = this.renderRoute(route, node);
+			const routes = routeMap.get(node);
+			if (!routes) continue;
+			const result = this.renderRoute(routes, node);
 			if (result !== null) {
 				found = true;
 				node.style.display = this.displays.get(node) || "block";
@@ -153,5 +157,55 @@ export default class Router extends Controller<"navigated">(Relation.Default) {
 		}
 
 		return subtitle;
+	}
+
+	/**
+	 * Checks provided route string. Returns null if check failed,
+	 * otherwise returns an array of the routes left.
+	 * Supports multiple space-separated routes as an input
+	 * @param route Route string to check
+	 * @param routes Routes array to generate result
+	 */
+	private parseRoute(
+		route: string | undefined,
+		routes: string[]
+	): string[] | null {
+		if (route == null) return null;
+		route = route.replace(/\/$|^\//g, "");
+		let result: string[] | null = null;
+
+		for (const routeString of route.split(" ")) {
+			const splitted = routeString.split("/");
+			const shiftedRoutes = [...routes];
+
+			result = shiftedRoutes;
+			const length = Math.max(shiftedRoutes.length, splitted.length);
+			for (let i = 0; i < length; i++) {
+				const one = shiftedRoutes[0]?.toLowerCase();
+				const current = splitted[i]?.toLowerCase();
+
+				if (!current) break;
+				if (current === one || current === "?") shiftedRoutes.shift();
+				else if (current === "." && one) shiftedRoutes.shift();
+				else if (current === "+" && one) return [];
+				else if (current === "*") return [];
+				else {
+					result = null;
+					break;
+				}
+			}
+
+			if (result) return result;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Navigates to the default path then closes the router
+	 */
+	public close(): void {
+		this.navigate(this.defaultPath, true);
+		super.close();
 	}
 }

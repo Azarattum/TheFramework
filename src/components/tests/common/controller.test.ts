@@ -1,7 +1,8 @@
 import Controller, {
 	bind,
 	element,
-	elements
+	elements,
+	Relation
 } from "../../common/controller.abstract";
 import { sleep } from "../../common/utils.class";
 
@@ -10,6 +11,8 @@ describe("Controller", () => {
 	 * Test full controller life cycle
 	 */
 	it("lifeCycle", () => {
+		console.warn = jest.fn();
+
 		class TestController extends Controller<"initialized">() {
 			@bind
 			private empty: null = null;
@@ -45,6 +48,7 @@ describe("Controller", () => {
 		test.on("initialized", callback1);
 		test.on("initialized", callback2);
 		test.initialize();
+		expect(console.warn).toHaveBeenCalledTimes(1);
 
 		expect(callback1).toBeCalledTimes(1);
 		expect(callback2).toBeCalledTimes(1);
@@ -76,7 +80,7 @@ describe("Controller", () => {
 		const init = jest.fn();
 		const close = jest.fn();
 
-		class Test extends Controller<"">() {
+		class Test extends Controller<never>(Relation.Default) {
 			public initialize(): void {
 				expect(this.container).toBeInstanceOf(HTMLDivElement);
 				init();
@@ -130,7 +134,7 @@ describe("Controller", () => {
 			close: jest.fn()
 		};
 
-		class Test extends Controller<"">() {
+		class Test extends Controller<never>(Relation.Binding) {
 			public initialize(): void {
 				this.data.hello;
 				expect(binding.get).toHaveBeenCalled();
@@ -178,7 +182,7 @@ describe("Controller", () => {
 			</div>
 		`;
 
-		class Test extends Controller<"">() {
+		class Test extends Controller<never>() {
 			@element("p")
 			private hello!: HTMLElement;
 			@element
@@ -281,7 +285,7 @@ describe("Controller", () => {
 		});
 		const binding = { get, set, close: jest.fn() };
 
-		class Test extends Controller<"">() {
+		class Test extends Controller<never>(Relation.Binding) {
 			@bind
 			private num: number = 0;
 			@bind()

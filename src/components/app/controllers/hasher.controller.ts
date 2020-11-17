@@ -1,18 +1,11 @@
-import Controller from "../../common/controller.abstract";
+import Controller, { Relation } from "../../common/controller.abstract";
 
 /**
  * Util controller to work with URL hash
  */
-export default class Hasher extends Controller<"loaded">() {
+export default class Hasher extends Controller<"loaded">(Relation.None) {
 	/** Whether the hash is frozen from changes */
 	private frozen: boolean = false;
-
-	/**
-	 * No object relations for this controller
-	 */
-	public static get relations(): null {
-		return null;
-	}
 
 	/**
 	 * Initializes URL Hash object

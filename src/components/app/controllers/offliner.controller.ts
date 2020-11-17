@@ -1,17 +1,10 @@
 import { log, LogType } from "../../common/utils.class";
-import Controller from "../../common/controller.abstract";
+import Controller, { Relation } from "../../common/controller.abstract";
 
 /**
  * Controller responsible for offline caching
  */
-export default class Offliner extends Controller<"">() {
-	/**
-	 * No object relations for this controller
-	 */
-	public static get relations(): null {
-		return null;
-	}
-
+export default class Offliner extends Controller<never>(Relation.None) {
 	/**
 	 * Registers service worker
 	 */

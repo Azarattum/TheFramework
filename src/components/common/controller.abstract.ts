@@ -2,12 +2,14 @@
 import { IComponent, IComponentOptions } from "./component.interface";
 import Exposer from "./exposer.class";
 import Binding from "./binding.class";
-import Utils from "./utils.class";
+import Utils, { LogType } from "./utils.class";
 
 /**
  * Event-driven controller generic type builder
  */
-export default function Controller<T extends string>() {
+export default function Controller<T extends string>(
+	type: Relation = Relation.Default
+) {
 	/**
 	 * Abstract of the controller class
 	 */
@@ -35,13 +37,18 @@ export default function Controller<T extends string>() {
 			this.name = this.constructor.name;
 			this.exposer = exposer;
 			this.relation = relation || null;
-			this.binding = relation ? new Binding(this.container) : null;
+			this.binding =
+				this.relation && type === Relation.Binding
+					? new Binding(this.container)
+					: null;
 		}
 
 		/**
 		 * All relational objects (html elements) for this controller class
 		 */
 		public static get relations(): object[] | null {
+			if (type === Relation.None) return null;
+
 			return Array.from(
 				document.querySelectorAll(
 					`[controller=${this.name.toLowerCase()}]`
@@ -114,9 +121,11 @@ export default function Controller<T extends string>() {
 		 * Binded to the controller data
 		 */
 		protected get data(): Record<string, any> {
-			if (!this.binding) {
+			if (type !== Relation.Binding || !this.binding) {
 				throw new Error(
-					"The controller is not associated with any container!"
+					`Data binding is disabled on ${this.name} controller. Use ` +
+						`'class ${this.name} extends Controller(Relation.Binding)' ` +
+						"in class declaration to enable it."
 				);
 			}
 
@@ -158,6 +167,18 @@ export default function Controller<T extends string>() {
 
 	//Return controller with specific typings
 	return Controller;
+}
+
+/**
+ * Configurations of controller's relation
+ */
+export enum Relation {
+	/**Controller not being related to any DOM elements */
+	None,
+	/**Controller is related to DOM, but data-binding is disabled */
+	Default,
+	/**Controller is related to DOM with data-binding enabled */
+	Binding
 }
 
 /**
@@ -298,7 +319,13 @@ export function bind(...args: any[]): any {
 		//Hook onto controller's initialize method to do more stuff
 		const original = target.initialize;
 		target.initialize = function(this: any, ...args: any[]): any {
-			if (!this.binding) return original.bind(this)(...args);
+			if (!this.binding) {
+				Utils.log(
+					`Trying to bind property '${key}' on a non binding ${this.name} controller!`,
+					LogType.WARNING
+				);
+				return original.bind(this)(...args);
+			}
 
 			//Update hook
 			const setValue = (

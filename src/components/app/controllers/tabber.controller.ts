@@ -1,9 +1,9 @@
-import Controller from "../../common/controller.abstract";
+import Controller, { Relation } from "../../common/controller.abstract";
 
 /**
  * Controller for creating element tabs
  */
-export default class Tabber extends Controller<"changed">() {
+export default class Tabber extends Controller<"changed">(Relation.Default) {
 	/**Saved display states for hidden elements */
 	private displays: Map<HTMLElement, string> = new Map();
 

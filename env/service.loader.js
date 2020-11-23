@@ -116,9 +116,10 @@ class ServiceWrapper {
 		this.callbacks[type].push(callback);
 	}
 
-	close() {
+	async close() {
+		const result = await this.original.close();
 		this.callbacks = {};
 		this.exposer.close(this.name.toLowerCase(), null);
-		return this.original.close();
+		return result;
 	}
 }

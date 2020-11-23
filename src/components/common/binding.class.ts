@@ -548,6 +548,12 @@ export default class Binding {
 				isStyle = true;
 				exp = exp.slice(0, exp.length - 1).replace("pug.style(", "");
 			}
+			//Parse calsses
+			let isClasses = false;
+			if (exp.startsWith("pug.classes(")) {
+				isClasses = true;
+				scope = `const pug={classes: (x) => x};` + scope;
+			}
 
 			//Evaluate the value
 			const result = (function(): any {
@@ -564,6 +570,14 @@ export default class Binding {
 				} else {
 					element.style.cssText = result.toString();
 				}
+			} else if (isClasses) {
+				//Support for classes syntax
+				const classes =
+					typeof result == "object"
+						? Object.values(result).map((x: any) => x.toString())
+						: result.split(" ");
+
+				element.className = classes.join(" ");
 			} else {
 				if (result === "" || result === false || result == null) {
 					element.removeAttribute(attr);

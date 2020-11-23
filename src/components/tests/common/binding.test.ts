@@ -488,6 +488,40 @@ describe("Binding", () => {
 	});
 
 	/**
+	 * Test binding of class attribute
+	 */
+	it("bindClasses", async () => {
+		container.innerHTML = `
+		<div id="a"
+			bind-good
+			bind="{&quot;class&quot;: &quot;pug.classes([good ? 'good' : 'bad'], [true])&quot;}"
+		></div>
+		<div id="b"
+			bind-good
+			bind="{&quot;class&quot;: &quot;pug.classes(good + '-class')&quot;}"
+		></div>
+		`;
+		bind = new Binding(container);
+
+		expect($("a").className).toBe("bad");
+		expect($("b").className).toBe("-class");
+		bind.set("good", true);
+		expect($("a").className).toBe("good");
+		expect($("b").className).toBe("true-class");
+		bind.set("good", false);
+		expect($("a").className).toBe("bad");
+		expect($("b").className).toBe("-class");
+		bind.set("good", "false");
+		expect($("a").className).toBe("good");
+		expect($("b").className).toBe("false-class");
+		bind.set("good", "kek");
+		expect($("a").className).toBe("good");
+		expect($("b").className).toBe("kek-class");
+
+		bind.close();
+	});
+
+	/**
 	 * Test binding for objects
 	 */
 	it("objectLikeData", async () => {

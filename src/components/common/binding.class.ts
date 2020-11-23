@@ -40,6 +40,9 @@ export default class Binding {
 			subtree: true
 		});
 
+		if (container.hasAttribute("bind")) {
+			this.updateElements([container] as any, true);
+		}
 		this.updateElements(container.querySelectorAll(`[bind]`), true);
 	}
 

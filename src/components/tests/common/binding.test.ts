@@ -522,6 +522,26 @@ describe("Binding", () => {
 	});
 
 	/**
+	 * Test attribute binding on the container itself
+	 */
+	it("selfAttributes", async () => {
+		container.setAttribute("bind-test", "");
+		container.setAttribute("bind", `{"data-test": "test"}`);
+		bind = new Binding(container);
+
+		expect(container.getAttribute("data-test")).toBe(null);
+		bind.set("test", "value");
+		expect(container.getAttribute("data-test")).toBe("value");
+		bind.set("test", false);
+		expect(container.getAttribute("data-test")).toBe(null);
+
+		bind.close();
+
+		container.removeAttribute("bind-test");
+		container.removeAttribute("bind");
+	});
+
+	/**
 	 * Test binding for objects
 	 */
 	it("objectLikeData", async () => {

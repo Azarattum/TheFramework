@@ -11,7 +11,7 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 	/** Default hash values */
 	public defaults: Record<string, string> = {};
 	/** Regular expression to data in location hash */
-	private hashExp = /(?<=#|^|\/)([^#:/]+:[^:,/]+,?)*$/;
+	private hashExp = /(#|^|\/)(([^#:/]+:[^:,/]+,?)*$)/;
 	/** On hash change event listener */
 	public listener: any = null;
 
@@ -26,10 +26,10 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 
 			const oldHash = event.oldURL
 				.slice(event.oldURL.indexOf("#"))
-				.match(this.hashExp)?.[0];
+				.match(this.hashExp)?.[2];
 			const newHash = event.newURL
 				.slice(event.newURL.indexOf("#"))
-				.match(this.hashExp)?.[0];
+				.match(this.hashExp)?.[2];
 
 			if (newHash == null) return;
 			if (oldHash?.toLowerCase() === newHash?.toLowerCase()) return;
@@ -122,7 +122,7 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 		updated = updated.replace(regexp, property + ":" + value);
 
 		//Update hash
-		let state = location.hash.replace(this.hashExp, updated);
+		let state = location.hash.replace(this.hashExp, "$1" + updated);
 		if (!state.startsWith("#")) state = "#" + state;
 		if (!stateless) {
 			history.pushState(null, "", state);
@@ -145,7 +145,7 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 	 * Returns raw hash data. Without any routing paths
 	 */
 	public get hash(): string {
-		return location.hash.match(this.hashExp)?.[0] || "";
+		return location.hash.match(this.hashExp)?.[2] || "";
 	}
 
 	/**
@@ -167,7 +167,7 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 	 */
 	public close(): void {
 		removeEventListener("hashchange", this.listener);
-		const state = location.hash.replace(this.hashExp, "");
+		const state = location.hash.replace(this.hashExp, "$1");
 		history.replaceState(null, "", state);
 		super.close();
 	}

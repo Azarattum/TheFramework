@@ -1,3 +1,5 @@
+import { format } from "./utils.class";
+
 /**
  * Class for 2-Way data binding
  */
@@ -147,7 +149,7 @@ export default class Binding {
 						paths.forEach(path => {
 							const valExp = exp.replace(
 								this.varRegex(path),
-								`"${value
+								`$1"${value
 									.replace(/\\/g, "\\\\")
 									.replace(/"/g, '\\"')}"`
 							);
@@ -185,20 +187,84 @@ export default class Binding {
 	/**
 	 * Returns a regex for finding variable in a string
 	 * @param variable Variable to find
-	 * @param precise Precise mode, accounting for all the quoting
 	 */
-	private varRegex(variable: string, precise = false): RegExp {
-		if (precise) {
-			return new RegExp(
-				`(?<=^([^\`]*\`[^\`]*\`)*[^\`]*(\`[^\`]*\\\${[^}]*?)?)(?<=^|[^A-Za-z0-9_$.])${variable}(?=$|[^A-Za-z0-9_$])(?=([^"]*"[^"]*")*[^"]*$)(?=([^']*'[^']*')*[^']*$)`,
-				"gi"
-			);
-		}
-
+	private varRegex(variable: string): RegExp {
 		return new RegExp(
-			`(?<=^|[^A-Za-z0-9_$.])${variable}(?=$|[^A-Za-z0-9_$])`,
+			`(^|[^A-Za-z0-9_$.])(${variable})(?=$|[^A-Za-z0-9_$])`,
 			"gi"
 		);
+	}
+
+	/**
+	 * Replaces the specified variable in a context
+	 * with qoutes and template literals
+	 * @param expression Expression to replace in
+	 * @param variable Variable name to replace
+	 * @param replacement A new value
+	 */
+	private replaceVariable(
+		expression: string,
+		variable: string,
+		replacement: string
+	): string {
+		const removeQuoted = (string: string, qouted: string[]): string => {
+			const quotes = ['"', "'", "`", "/"];
+
+			let balance = -1;
+			let quote = null;
+			let updated = "";
+			for (let i = 0; i < string.length; i++) {
+				const char = string[i];
+				if (char == "\\") {
+					i++;
+					continue;
+				}
+
+				if (balance >= 0) {
+					if (char == "{") balance++;
+					if (char == "}") balance--;
+					if (balance <= -1) {
+						updated += `{${qouted.length}}`;
+						qouted.push(char);
+						continue;
+					}
+					updated += char;
+				} else {
+					if (!quote) {
+						if (quotes.includes(char)) {
+							quote = char;
+							updated += `{${qouted.length}}`;
+							qouted.push(char);
+							continue;
+						}
+						updated += char;
+					} else {
+						qouted[qouted.length - 1] += char;
+						if (char == quote) {
+							quote = null;
+						} else if (
+							quote == "`" &&
+							char == "$" &&
+							string[i + 1] == "{"
+						) {
+							i++;
+							qouted[qouted.length - 1] += "{";
+							balance = 0;
+						}
+					}
+				}
+			}
+
+			return updated;
+		};
+
+		const quoted: string[] = [];
+		const updated = removeQuoted(expression, quoted).replace(
+			this.varRegex(variable),
+			"$1" + replacement
+		);
+
+		return format(updated, ...quoted);
 	}
 
 	/**
@@ -220,10 +286,11 @@ export default class Binding {
 			if (expression) {
 				expression = expression.replace(
 					this.varRegex(name),
-					name
-						.replace(/\./g, "_")
-						.replace(/-/g, "__")
-						.toLowerCase()
+					"$1" +
+						name
+							.replace(/\./g, "_")
+							.replace(/-/g, "__")
+							.toLowerCase()
 				);
 			}
 
@@ -370,13 +437,15 @@ export default class Binding {
 					if (typeof object != "object") throw "";
 
 					for (const i in object) {
-						object[i] = object[i].replace(
-							this.varRegex(iterable, true),
+						object[i] = this.replaceVariable(
+							object[i],
+							iterable,
 							`${path}.${key}`
 						);
 						if (!index) continue;
-						object[i] = object[i].replace(
-							this.varRegex(index, true),
+						object[i] = this.replaceVariable(
+							object[i],
+							index,
 							`"${key}"`
 						);
 					}
@@ -384,13 +453,15 @@ export default class Binding {
 					expression = JSON.stringify(object);
 				} catch {
 					//For a normal content expression
-					expression = expression.replace(
-						this.varRegex(iterable, true),
+					expression = this.replaceVariable(
+						expression,
+						iterable,
 						`${path}.${key}`
 					);
 					if (index) {
-						expression = expression.replace(
-							this.varRegex(index, true),
+						expression = this.replaceVariable(
+							expression,
+							index,
 							`"${key}"`
 						);
 					}

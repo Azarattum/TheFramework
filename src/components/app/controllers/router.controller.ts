@@ -12,7 +12,7 @@ export default class Router extends Controller<"navigated">(Relation.Default) {
 	/**Saved original document title */
 	private title: string = document.title;
 	/**Regular expression to find url in location hash */
-	private readonly urlRegex = /(?<=#|^)(\/([-a-zA-Z0-9()@%_+.~?&//=]*)(\/|$))|(?<=#)\/?|^$/;
+	private readonly urlRegex = /(#|^)(\/([-a-zA-Z0-9()@%_+.~?&//=]*)(\/|$))|(#)\/?|^$/;
 	/**Default router path */
 	private defaultPath: string = "";
 
@@ -66,7 +66,7 @@ export default class Router extends Controller<"navigated">(Relation.Default) {
 		//Save state
 		let state = location.hash.replace(
 			this.urlRegex,
-			`/${path ? path + "/" : ""}`
+			`$1$5/${path ? path + "/" : ""}`
 		);
 		if (!state.startsWith("#")) state = "#" + state;
 
@@ -86,7 +86,7 @@ export default class Router extends Controller<"navigated">(Relation.Default) {
 	 */
 	public get path(): string {
 		const hash = location.hash;
-		return (hash.match(this.urlRegex)?.[0] || "").replace(/\/$|^\//g, "");
+		return (hash.match(this.urlRegex)?.[2] || "").replace(/\/$|^\//g, "");
 	}
 
 	/**

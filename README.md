@@ -1,23 +1,19 @@
 # The Framework [NODE]
-For easy development of js/ts applications.
+Web development made easy!
 
-This is **node** branch. Check [**browser**](https://github.com/Azarattum/TheFramework/tree/browser) for front-end development.
+This is **node** branch. Check out [**browser**](https://github.com/Azarattum/TheFramework/tree/browser) for front-end development.
 
-## Features & Technologies:
-  - Uses **Typescript**
-  - Bundles with **Webpack**
-  - Preconfigured **ESList**
-  - Preconfigured **Prettier**
-  - Preconfigured **VSCode** debugger
-  - Event-driven
-  - Strict naming and hierarchy
-  - Lightweight
+## Features:
+  - Awesome tools - zero configuration!
+  - For Node & Browser!
+  - Event-driven!
+  - Lightweight!
 
 ### Usage:
-Clone this repo and start developing your project.
+Start developing now with our [exhaustive documentation](https://github.com/Azarattum/TheFramework/wiki)!
 
 ### Installation: 
-Install all dependencies:
+Install all the development dependencies:
 ```sh
 npm install
 ```
@@ -29,5 +25,5 @@ npm install
 | release   | Creates a production build of the project               |
 | build     | Builds the entire project with webpack                  |
 | watch     | Watches all file changes and rebuilds them if necessary |
-| test      | Run all tests                                           |
-| coverage  | Generate code test coverage report                      |
+| test      | Runs all tests                                          |
+| coverage  | Generates code test coverage report                     |

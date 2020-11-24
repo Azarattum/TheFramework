@@ -192,7 +192,7 @@ export function element(...args: any[]): any {
 	let selector: string | null = null;
 	const decorator = function(target: any, key: string): void {
 		selector = selector ? selector : `.${key}`;
-		const original = target.initialize;
+		const original = target.initialize || Function();
 		target.initialize = function(...args: any[]): any {
 			Object.defineProperty(this, key, {
 				get: () => {
@@ -233,7 +233,7 @@ export function elements(...args: any[]): any {
 	let selector: string | null = null;
 	const decorator = function(target: any, key: string): void {
 		selector = selector ? selector : `.${key}`;
-		const original = target.initialize;
+		const original = target.initialize || Function();
 		target.initialize = function(...args: any[]): any {
 			Object.defineProperty(this, key, {
 				get: () => {
@@ -317,7 +317,7 @@ export function bind(...args: any[]): any {
 		Object.defineProperty(target, key, { get: getter, set: setter });
 
 		//Hook onto controller's initialize method to do more stuff
-		const original = target.initialize;
+		const original = target.initialize || Function();
 		target.initialize = function(this: any, ...args: any[]): any {
 			if (!this.binding) {
 				Utils.log(

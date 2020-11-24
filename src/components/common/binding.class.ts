@@ -244,6 +244,10 @@ export default class Binding {
 	 * @param object Any normal object
 	 */
 	private makeDataObject(object: Record<string, any>): IData {
+		if (object instanceof Date) {
+			return object.toString() as any;
+		}
+
 		object = Object.assign({}, object);
 		for (const key in object) {
 			if (typeof object[key] == "object") {

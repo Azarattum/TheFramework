@@ -885,4 +885,23 @@ describe("Binding", () => {
 		bind.set("obj", "str");
 		expect(bind.get("obj")).toEqual({});
 	});
+
+	/**
+	 * Test that date serializes properly
+	 */
+	it("dateSerialization", async () => {
+		container.innerHTML = `
+			<data-text bind-time bind="time" id="time"></data-text>
+		`;
+		await sleep(0);
+
+		const date = new Date();
+
+		bind.set("time", date);
+
+		expect(bind.get("time")).toBe(date.toString());
+		expect($("time").textContent).toEqual(date.toString());
+
+		bind.close();
+	});
 });

@@ -4,25 +4,6 @@ const WebpackCleanupPlugin = require("webpack-cleanup-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const WorkboxPlugin = require("workbox-webpack-plugin");
 
-//Register use of data binding templates for the index page
-const handler = {
-	get: (object, property) => {
-		if (
-			property == Symbol.toPrimitive ||
-			property == "toJSON" ||
-			property == "toString"
-		) {
-			return () =>
-				`<placeholder ${object._}><!--"placeholders __postfix_${object._}="--></placeholder>`;
-		}
-		const newObject = {
-			_: (object._ ? object._ + "." : "") + property
-		};
-		return new Proxy(newObject, handler);
-	}
-};
-const data = new Proxy({ _: "" }, handler);
-
 const prod = process.argv.indexOf("-p") !== -1;
 
 module.exports = {
@@ -32,8 +13,7 @@ module.exports = {
 	plugins: [
 		new HtmlWebpackPlugin({
 			template: "./src/index.pug",
-			minify: prod,
-			data: data
+			minify: prod
 		}),
 		prod ? new WorkboxPlugin.GenerateSW() : () => {},
 		prod ? new WebpackCleanupPlugin() : () => {}

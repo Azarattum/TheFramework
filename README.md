@@ -1,30 +1,19 @@
 # The Framework [BROWSER]
-For easy development of js/ts applications.
+Web development made easy!
 
-This is **browser** branch. Check [**node**](https://github.com/Azarattum/TheFramework/tree/node) for NodeJS development.
+This is **browser** branch. Check out [**node**](https://github.com/Azarattum/TheFramework/tree/node) for NodeJS development.
 
-## Features & Technologies:
-  - Uses **Typescript**
-  - Bundles with **Webpack**
-  - Preconfigured **ESList**
-  - Preconfigured **Prettier**
-  - Uses **Sass** as css preprocessor
-  - Uses **Pug** for HTML templates
-  - Preconfigured WebWorkers for Webpack
-  - Preconfigured ServiceWorker from **Workbox Plugin**
-  - Preconfigured GL Shaders loader
-  - Preconfigured **Chrome Debugger**
-  - Controller scopes
-  - 2-Way data binding
-  - Event-driven
-  - Strict naming and hierarchy
-  - Lightweight
+## Features:
+  - Awesome tools - zero configuration!
+  - For Node & Browser!
+  - Event-driven!
+  - Lightweight!
 
 ### Usage:
-Clone this repo and start developing your website.
+Start developing now with our [exhaustive documentation](https://github.com/Azarattum/TheFramework/wiki)!
 
 ### Installation: 
-Install all dependencies:
+Install all the development dependencies:
 ```sh
 npm install
 ```
@@ -36,5 +25,5 @@ npm install
 | release   | Creates a production build of the project               |
 | build     | Builds the entire project with webpack                  |
 | watch     | Watches all file changes and rebuilds them if necessary |
-| test      | Run all tests                                           |
-| coverage  | Generate code test coverage report                      |
+| test      | Runs all tests                                          |
+| coverage  | Generates code test coverage report                     |

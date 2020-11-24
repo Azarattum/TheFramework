@@ -17,7 +17,7 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 
 	/**
 	 * Initializes URL Hash object
-	 * @param {Object} defaults Default values for hash
+	 * @param defaults Default values for hash
 	 */
 	public initialize(defaults: Record<string, string> = {}): void {
 		//Register change event
@@ -69,7 +69,7 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 
 	/**
 	 * Returns the value of hash property
-	 * @param {String} property Name of property
+	 * @param property Name of property
 	 */
 	public get(property: string): string | null {
 		this.validateString(property);
@@ -87,7 +87,7 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 	}
 
 	/**
-	 * Freezes hash from changes untils it is unfrozen
+	 * Freezes hash from changes until it is unfrozen
 	 * @param frozen Whether the hash frozen
 	 */
 	public freeze(frozen: boolean = true): void {
@@ -96,7 +96,9 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 
 	/**
 	 * Sets the value of hash property
-	 * @param {String} propertyName Name of a property
+	 * @param property Name of a property
+	 * @param value New property's value
+	 * @param stateless Should a state update not be pushed to the history after the set
 	 */
 	public set(property: string, value: any, stateless: boolean = false): void {
 		if (this.frozen) return;
@@ -130,8 +132,8 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 	}
 
 	/**
-	 * Checks whethe the property exists or not
-	 * @param {String} property Property name
+	 * Checks whether the property exists
+	 * @param property Property name
 	 */
 	public exists(property: string): boolean {
 		return (
@@ -148,7 +150,7 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 
 	/**
 	 * Raises an exception if the strings contains illegal characters
-	 * @param {String} string String to check
+	 * @param string String to check
 	 */
 	private validateString(string: string): void {
 		if (

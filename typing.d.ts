@@ -20,6 +20,16 @@ declare module "*.fsh" {
 }
 
 declare module "*.pug" {
-	const value: (locals?: {}) => string;
+	const value: (locals?: obj) => string;
 	export default value;
 }
+
+/**
+ * Arbitrary function type
+ */
+type func = (...args: any[]) => any;
+
+/**
+ * Arbitrary object type
+ */
+type obj = Record<any, any>;

@@ -1,22 +1,22 @@
 const Path = require("path");
 const TerserPlugin = require("terser-webpack-plugin");
-const WebpackCleanupPlugin = require("webpack-cleanup-plugin");
+const CleanPlugin = require("clean-webpack-plugin").CleanWebpackPlugin;
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const WorkboxPlugin = require("workbox-webpack-plugin");
 
-const prod = process.argv.indexOf("-p") !== -1;
+const prod = process.argv.indexOf("production") !== -1;
 
 module.exports = {
 	entry: "./src/index.ts",
 	mode: prod ? "production" : "development",
-	devtool: prod ? undefined : "eval-source-map",
+	devtool: prod ? undefined : "source-map",
 	plugins: [
 		new HtmlWebpackPlugin({
 			template: "./src/index.pug",
 			minify: prod
 		}),
 		prod ? new WorkboxPlugin.GenerateSW() : () => {},
-		prod ? new WebpackCleanupPlugin() : () => {}
+		new CleanPlugin()
 	],
 	module: {
 		rules: [
@@ -73,7 +73,8 @@ module.exports = {
 	},
 	output: {
 		filename: "bundle.js",
-		path: Path.resolve(__dirname, "../dist")
+		path: Path.resolve(__dirname, "../dist"),
+		devtoolModuleFilenameTemplate: "[absolute-resource-path]"
 	},
 	optimization: {
 		splitChunks: {
@@ -84,7 +85,6 @@ module.exports = {
 			maxAsyncRequests: 6,
 			maxInitialRequests: 4,
 			automaticNameDelimiter: "~",
-			automaticNameMaxLength: 30,
 			cacheGroups: {
 				vendors: {
 					test: /[\\/]node_modules[\\/]/,
@@ -98,6 +98,7 @@ module.exports = {
 			}
 		},
 		concatenateModules: false,
+		usedExports: false,
 		minimize: prod ? true : false,
 		minimizer: prod
 			? [

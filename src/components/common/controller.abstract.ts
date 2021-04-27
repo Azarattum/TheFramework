@@ -1,5 +1,13 @@
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint @typescript-eslint/explicit-function-return-type: 0 */
-import { IComponent, IComponentOptions } from "./component.interface";
+import {
+	EventBase,
+	EventFunc,
+	EventName,
+	EventResult,
+	IComponent,
+	IComponentOptions
+} from "./component.interface";
 import Exposer from "./exposer.class";
 import Binding from "./binding.class";
 import Utils, { LogType } from "./utils.class";
@@ -7,9 +15,10 @@ import Utils, { LogType } from "./utils.class";
 /**
  * Event-driven controller generic type builder
  */
-export default function Controller<T extends string>(
-	type: Relation = Relation.Default
-) {
+export default function Controller<
+	T extends EventBase = never,
+	U extends EventBase = never
+>(type: Relation = Relation.Default) {
 	/**
 	 * Abstract of the controller class
 	 */
@@ -21,18 +30,20 @@ export default function Controller<T extends string>(
 		/**Controller name */
 		public readonly name: string;
 		/**Callbacks storage */
-		private callbacks: { [type: string]: Function[] } = {};
+		private callbacks: { [type: string]: func[] } = {};
+		/**Callbacks storage */
+		private wishes: { [type: string]: func } = {};
 		/**Exposer object */
-		private exposer: Exposer;
+		private exposer?: Exposer;
 		/**Relation reference */
-		private relation: object | null;
+		private relation: obj | null;
 		/**Placeholders list */
 		private binding: Binding | null;
 
 		/**
 		 * Creates controller class
 		 */
-		public constructor({ exposer, relation }: IComponentOptions) {
+		public constructor({ exposer, relation }: IComponentOptions = {}) {
 			this.uuid = Utils.generateID();
 			this.name = this.constructor.name;
 			this.exposer = exposer;
@@ -46,13 +57,13 @@ export default function Controller<T extends string>(
 		/**
 		 * All relational objects (html elements) for this controller class
 		 */
-		public static get relations(): object[] | null {
+		public static get relations(): obj[] | null {
 			if (type === Relation.None) return null;
 
-			return Array.from(
+			return Array.from<obj>(
 				document.querySelectorAll(
 					`[controller~=${this.name.toLowerCase()}]`
-				)
+				) as any
 			);
 		}
 
@@ -63,7 +74,7 @@ export default function Controller<T extends string>(
 			//Close the controller
 			this.callbacks = {};
 			this.binding?.close();
-			this.exposer.close(this.name.toLowerCase(), this.relation);
+			this.exposer?.close(this.name.toLowerCase(), this.relation);
 		}
 
 		/**
@@ -71,20 +82,47 @@ export default function Controller<T extends string>(
 		 * @param type Event type
 		 * @param callback Callback function
 		 */
-		public on(type: T, callback: Function): void {
+		public on(type: EventName<T>, callback: EventFunc<T>): void {
 			if (!(type in this.callbacks)) this.callbacks[type] = [];
 			this.callbacks[type].push(callback);
 		}
 
 		/**
+		 * Defines an executor for a controller's wish
+		 * @param what Wish name
+		 * @param callback Executor function
+		 */
+		public wants(what: EventName<U>, callback: EventFunc<T>): void {
+			this.wishes[what] = callback;
+		}
+
+		/**
 		 * Calls all the registered event listeners in the controller
 		 * @param type Event type
-		 * @param args Arguments to pass to callbacks
+		 * @param args Arguments to pass to the callbacks
 		 */
-		protected emit(type: T, ...args: any[]): void {
-			if (this.callbacks[type]) {
-				this.callbacks[type].forEach(x => x.call(x, ...args));
+		protected emit(type: EventName<T>, ...args: any[]): boolean {
+			const callbacks = this.callbacks[type];
+			callbacks?.forEach(x => x(...args));
+
+			return callbacks && callbacks.length > 0;
+		}
+
+		/**
+		 * Calls the wish executor and returns its result.
+		 * Throws if an executor is not implemented!
+		 * @param type Executor type
+		 * @param args Arguments to pass to the executor
+		 */
+		protected want(type: EventName<U>, ...args: any): EventResult<U> {
+			const wish = this.wishes[type];
+			if (!wish) {
+				throw new Error(
+					"Wish cannot be fullfiled! Executor not implemented!"
+				);
 			}
+
+			return wish(...args);
 		}
 
 		/**
@@ -94,11 +132,10 @@ export default function Controller<T extends string>(
 		 * @param name Name of the exposed function (in the scope of service)
 		 * @param func Exposed function
 		 */
-		protected expose(name: string, func: Function | null = null): void {
-			const exposed =
-				func || ((this as any)[name] as Function).bind(this);
+		protected expose(name: string, func: func | null = null): void {
+			const exposed = func || ((this as any)[name] as func).bind(this);
 
-			this.exposer.expose(
+			this.exposer?.expose(
 				this.name.toLowerCase(),
 				name,
 				exposed,
@@ -190,10 +227,10 @@ export enum Relation {
  */
 export function element(...args: any[]): any {
 	let selector: string | null = null;
-	const decorator = function(target: any, key: string): void {
+	const decorator = function (target: any, key: string): void {
 		selector = selector ? selector : `.${key}`;
 		const original = target.initialize || Function();
-		target.initialize = function(...args: any[]): any {
+		target.initialize = function (...args: any[]): any {
 			Object.defineProperty(this, key, {
 				get: () => {
 					const element = this.container.querySelector(
@@ -231,10 +268,10 @@ export function element(...args: any[]): any {
  */
 export function elements(...args: any[]): any {
 	let selector: string | null = null;
-	const decorator = function(target: any, key: string): void {
+	const decorator = function (target: any, key: string): void {
 		selector = selector ? selector : `.${key}`;
 		const original = target.initialize || Function();
-		target.initialize = function(...args: any[]): any {
+		target.initialize = function (...args: any[]): any {
 			Object.defineProperty(this, key, {
 				get: () => {
 					return [
@@ -265,7 +302,7 @@ export function elements(...args: any[]): any {
  */
 export function bind(...args: any[]): any {
 	let path: string | null = null;
-	const decorator = function(target: any, key: string): void {
+	const decorator = function (target: any, key: string): void {
 		if (!path) path = key.toLowerCase();
 		const debounces: Map<any, number> = new Map();
 		const updates: Map<
@@ -275,13 +312,13 @@ export function bind(...args: any[]): any {
 
 		//Proxy for objects handler
 		const handler: ProxyHandler<any> = {
-			get: function(target, prop, receiver) {
+			get: function (target, prop, receiver) {
 				const result = Reflect.get(target, prop, receiver);
 				clearTimeout(debounces.get(this));
 				updates.get(this)?.();
 				return result;
 			},
-			set: function(target, prop, value) {
+			set: function (target, prop, value) {
 				const result = Reflect.set(target, prop, value);
 				if (debounces.get(this) === undefined) {
 					updates.get(this)?.(`${path}.${prop.toString()}`, value);
@@ -293,10 +330,10 @@ export function bind(...args: any[]): any {
 		const objects: Map<any, any> = new Map();
 		const proxies: Map<any, any> = new Map();
 
-		const getter = function(this: any) {
+		const getter = function (this: any) {
 			return proxies.get(this);
 		};
-		const setter = function(this: any, value: any) {
+		const setter = function (this: any, value: any) {
 			objects.set(this, value);
 			if (typeof value == "object" && value !== null) {
 				proxies.set(
@@ -318,7 +355,7 @@ export function bind(...args: any[]): any {
 
 		//Hook onto controller's initialize method to do more stuff
 		const original = target.initialize || Function();
-		target.initialize = function(this: any, ...args: any[]): any {
+		target.initialize = function (this: any, ...args: any[]): any {
 			if (!this.binding) {
 				Utils.log(
 					`Trying to bind property '${key}' on a non binding ${this.name} controller!`,
@@ -338,7 +375,7 @@ export function bind(...args: any[]): any {
 			updates.set(this, (name?: string, value?: any) => {
 				debounces.set(
 					this,
-					setTimeout(() => {
+					+setTimeout(() => {
 						setValue(name, value);
 					})
 				);
@@ -418,7 +455,7 @@ if (typeof globalThis === "undefined") {
 (globalThis as any).ctrl = new Proxy(
 	{},
 	{
-		get: (obj: {}, prop: string) => {
+		get: (obj: obj, prop: string) => {
 			if (!("event" in globalThis) || !event) return;
 			let node = event.target as HTMLElement | null;
 			let element: HTMLElement | null = null;

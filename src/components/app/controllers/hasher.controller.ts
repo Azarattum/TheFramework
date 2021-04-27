@@ -3,9 +3,10 @@ import Controller, { Relation } from "../../common/controller.abstract";
 /**
  * Util controller to work with URL hash
  */
-export default class Hasher extends Controller<"loaded" | "changed">(
-	Relation.None
-) {
+export default class Hasher extends Controller<
+	| ["loaded", (properties: Record<string, string>) => void]
+	| ["changed", (properties: Record<string, string>) => void]
+>(Relation.None) {
 	/** Whether the hash is frozen from changes */
 	public frozen: boolean = false;
 	/** Default hash values */
@@ -100,6 +101,7 @@ export default class Hasher extends Controller<"loaded" | "changed">(
 	 * @param value New property's value
 	 * @param stateless Should a state update not be pushed to the history after the set
 	 */
+	// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 	public set(property: string, value: any, stateless: boolean = false): void {
 		if (this.frozen) return;
 

@@ -4,7 +4,7 @@ import Controller, { Relation } from "../../common/controller.abstract";
 /**
  * Controller responsible for offline caching
  */
-export default class Offliner extends Controller<never>(Relation.None) {
+export default class Offliner extends Controller(Relation.None) {
 	/**
 	 * Registers service worker
 	 */

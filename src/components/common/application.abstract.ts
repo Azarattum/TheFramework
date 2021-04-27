@@ -19,7 +19,7 @@ export default abstract class Application {
 	/**Components types */
 	private readonly types: IComponentType[];
 	/**Relation map for dynamic components */
-	private readonly relations: Map<IComponent, object | null>;
+	private readonly relations: Map<IComponent, obj | null>;
 	/**Handlers map for each component type */
 	private readonly handlers: Map<IComponentType, ((self: any) => void)[]>;
 	/**Timeout id for debouncing refresh calls */
@@ -125,9 +125,9 @@ export default abstract class Application {
 			if (this.logging) log("Refreshing components...");
 
 			//Find all the relevant relations
-			const relations: Map<IComponentType, object[]> = new Map();
+			const relations: Map<IComponentType, obj[]> = new Map();
 			this.types.forEach(type => {
-				let array: object[] | null | undefined = relations.get(type);
+				let array: obj[] | null | undefined = relations.get(type);
 				if (array === undefined) {
 					array = type.relations;
 					if (array == null) return;
@@ -225,9 +225,14 @@ export default abstract class Application {
 	 * Returns the first component by the type
 	 * @param type Component's type
 	 */
-	protected getComponent<T extends IComponent>(type: IComponentType<T>): T {
+	protected getComponent<T extends IComponent>(
+		type: IComponentType<T> | (func & { prototype: T }),
+		relation?: obj
+	): T {
 		const component = this.components.find(
-			component => component instanceof (type.valueOf() as any)
+			component =>
+				component instanceof (type.valueOf() as any) &&
+				(!relation || (component as any).relation === relation)
 		);
 
 		if (!component) {
@@ -242,10 +247,13 @@ export default abstract class Application {
 	 * @param type Component's type
 	 */
 	protected getComponents<T extends IComponent>(
-		type: IComponentType<T>
+		type: IComponentType<T> | (func & { prototype: T }),
+		relation?: obj
 	): T[] {
 		return this.components.filter(
-			component => component instanceof (type.valueOf() as any)
+			component =>
+				component instanceof (type.valueOf() as any) &&
+				(!relation || (component as any).relation === relation)
 		) as T[];
 	}
 
@@ -269,14 +277,15 @@ export default abstract class Application {
 			}
 
 			//Call all component's handlers
-			const handlers = this.handlers.get(
-				component.constructor as IComponentType
-			);
-			if (handlers) {
-				handlers.forEach(handler => {
-					handler(component);
-				});
-			}
+			let target = component.constructor as any;
+			do {
+				const handlers = this.handlers.get(target);
+				if (handlers) {
+					handlers.forEach(handler => {
+						handler(component);
+					});
+				}
+			} while ((target = target.__proto__));
 
 			//Initialize the component with its config
 			const args =
@@ -308,7 +317,7 @@ export default abstract class Application {
 	 */
 	private registerComponent(
 		component: IComponentType,
-		relation?: object
+		relation?: obj
 	): IComponent | null {
 		try {
 			const created = new component({
@@ -347,8 +356,10 @@ export default abstract class Application {
  * before its initializtion. The main use case is events registration
  * @param type Component type to handle
  */
-export function handle<T extends IComponent>(type: IComponentType<T>) {
-	return function(
+export function handle<T extends IComponent>(
+	type: IComponentType<T> | (func & { prototype: T })
+) {
+	return function (
 		target: Application,
 		_: string,
 		descriptor: TypedPropertyDescriptor<(self: T) => any>
@@ -358,12 +369,11 @@ export function handle<T extends IComponent>(type: IComponentType<T>) {
 		const handler = descriptor.value;
 
 		const original = target["registerHandlers"];
-		target["registerHandlers"] = function(...args): any {
-			let handlers = this["handlers"].get(type);
+		target["registerHandlers"] = function (...args): any {
+			let handlers = this["handlers"].get(type as any);
 			if (!handlers) handlers = [];
 			handlers.push(handler.bind(this));
-			this["handlers"].set(type, handlers);
-
+			this["handlers"].set(type as any, handlers);
 			return original.bind(this)(...args);
 		};
 	};

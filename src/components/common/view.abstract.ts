@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-this-alias */
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { IComponent, IComponentOptions } from "./component.interface";
@@ -6,7 +7,7 @@ import Utils from "./utils.class";
 /**
  * View class type generator
  */
-export default function View(template: Function) {
+export default function View(template: func) {
 	/**
 	 * Abstract class of a view component
 	 */
@@ -18,11 +19,11 @@ export default function View(template: Function) {
 		/**View universal unique id */
 		public readonly uuid: string;
 		/**HTML template function */
-		protected template: Function;
+		protected template: func;
 		/**Function resolves promise when the view is rendered the first time */
-		private resolveRender: Function | null;
+		private resolveRender: func | null;
 		/**Callback to refresh application */
-		private refreshCallback: Function;
+		private refreshCallback?: func;
 
 		/**
 		 * Creates new view component
@@ -99,7 +100,7 @@ export default function View(template: Function) {
 					public render() {
 						//Debounce render execution
 						clearTimeout(this.renderHandle);
-						this.renderHandle = setTimeout(() => {
+						this.renderHandle = +setTimeout(() => {
 							const args: Record<string, any> = {
 								uuid: this.uuid
 							};
@@ -114,7 +115,7 @@ export default function View(template: Function) {
 							this.innerHTML = html;
 							setTimeout(() => {
 								view.resolveRender?.();
-								view.refreshCallback();
+								view.refreshCallback?.();
 							});
 						});
 					}
@@ -130,7 +131,7 @@ export default function View(template: Function) {
 					 * Refreshes app when the view is deleted from DOM
 					 */
 					private disconnectedCallback() {
-						view.refreshCallback();
+						view.refreshCallback?.();
 					}
 
 					/**

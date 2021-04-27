@@ -1,5 +1,8 @@
 import viewLoad from "../../../../env/view.loader";
-const pugLoad = require("pug-loader") as (source: string) => string;
+const pugLoad = require("pug-loader") as (
+	source: string,
+	options: obj
+) => string;
 
 async function load(source: string): Promise<HTMLElement> {
 	return new Promise(resolve => {
@@ -19,7 +22,7 @@ async function load(source: string): Promise<HTMLElement> {
 			callback: callback
 		};
 
-		pugLoad.call(loaderContext, source);
+		pugLoad.bind(loaderContext)(source, {});
 	});
 }
 

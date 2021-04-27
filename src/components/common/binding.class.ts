@@ -132,7 +132,7 @@ export default class Binding {
 				let timeout = -1;
 				const handler = (): void => {
 					clearTimeout(timeout);
-					timeout = setTimeout(() => {
+					timeout = +setTimeout(() => {
 						const checker = ["radio", "checkbox"].includes(x.type);
 						const value = checker
 							? x.checked
@@ -579,7 +579,7 @@ export default class Binding {
 		scope: string
 	): void {
 		//Evaluate the value
-		const result = (function(): string {
+		const result = (function (): string {
 			return eval(scope + `(${expression})`);
 		})();
 
@@ -634,7 +634,7 @@ export default class Binding {
 			}
 
 			//Evaluate the value
-			const result = (function(): any {
+			const result = (function (): any {
 				return eval(scope + `(${exp})`);
 			})();
 
@@ -745,6 +745,7 @@ export default class Binding {
 	 * @param value New property's value
 	 * @param mode A mode for value to be set
 	 */
+	// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 	public set(path: string, value?: any, mode = SetMode.Normal): void {
 		//Promise support
 		if (value instanceof Promise) {

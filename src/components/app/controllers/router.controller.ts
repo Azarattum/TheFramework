@@ -4,7 +4,9 @@ import { format } from "../../common/utils.class";
 /**
  * Client-side router controller.
  */
-export default class Router extends Controller<"navigated">(Relation.Default) {
+export default class Router extends Controller<
+	["navigated", (path: string, stateless: string) => void]
+>(Relation.Default) {
 	/**Format string for titles */
 	public titleFormat: string = "{0} - {1}";
 	/**Saved display states for hidden elements */
@@ -19,7 +21,7 @@ export default class Router extends Controller<"navigated">(Relation.Default) {
 	/**
 	 * Override relations to the document body
 	 */
-	public static get relations(): object[] {
+	public static get relations(): obj[] {
 		return [document.body];
 	}
 

@@ -3,7 +3,9 @@ import Controller, { Relation } from "../../common/controller.abstract";
 /**
  * Controller for creating element tabs
  */
-export default class Tabber extends Controller<"changed">(Relation.Default) {
+export default class Tabber extends Controller<
+	["changed", (tab: string) => void]
+>(Relation.Default) {
 	/**Saved display states for hidden elements */
 	private displays: Map<HTMLElement, string> = new Map();
 

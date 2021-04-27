@@ -357,7 +357,7 @@ export default abstract class Application {
  * @param type Component type to handle
  */
 export function handle<T extends IComponent>(
-	type: IComponentType<T> | (func & { prototype: T })
+	type: IComponentType<T> | { prototype: T }
 ) {
 	return function (
 		target: Application,

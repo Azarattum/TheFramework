@@ -1,14 +1,14 @@
 const Path = require("path");
 const TerserPlugin = require("terser-webpack-plugin");
-const WebpackCleanupPlugin = require("webpack-cleanup-plugin");
+const CleanPlugin = require("clean-webpack-plugin").CleanWebpackPlugin;
 
-const prod = process.argv.indexOf("-p") !== -1;
+const prod = process.argv.indexOf("production") !== -1;
 
 module.exports = {
 	entry: "./src/index.ts",
 	mode: prod ? "production" : "development",
-	devtool: prod ? undefined : "eval-source-map",
-	plugins: [prod ? new WebpackCleanupPlugin() : () => {}],
+	devtool: prod ? undefined : "source-map",
+	plugins: [new CleanPlugin()],
 	module: {
 		rules: [
 			{
@@ -48,10 +48,12 @@ module.exports = {
 	},
 	output: {
 		filename: "bundle.js",
-		path: Path.resolve(__dirname, "../dist")
+		path: Path.resolve(__dirname, "../dist"),
+		devtoolModuleFilenameTemplate: "[absolute-resource-path]"
 	},
 	optimization: {
 		concatenateModules: false,
+		usedExports: false,
 		minimize: prod ? true : false,
 		minimizer: prod
 			? [

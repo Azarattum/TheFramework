@@ -226,7 +226,7 @@ export default abstract class Application {
 	 * @param type Component's type
 	 */
 	protected getComponent<T extends IComponent>(
-		type: IComponentType<T> | (func & { prototype: T }),
+		type: IComponentType<T> | { name: string; prototype: T },
 		relation?: obj
 	): T {
 		const component = this.components.find(
@@ -247,7 +247,7 @@ export default abstract class Application {
 	 * @param type Component's type
 	 */
 	protected getComponents<T extends IComponent>(
-		type: IComponentType<T> | (func & { prototype: T }),
+		type: IComponentType<T> | { name: string; prototype: T },
 		relation?: obj
 	): T[] {
 		return this.components.filter(
@@ -357,7 +357,7 @@ export default abstract class Application {
  * @param type Component type to handle
  */
 export function handle<T extends IComponent>(
-	type: IComponentType<T> | { prototype: T }
+	type: IComponentType<T> | { name: string; prototype: T }
 ) {
 	return function (
 		target: Application,

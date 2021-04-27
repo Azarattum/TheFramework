@@ -41,7 +41,8 @@ export default class Tabber extends Controller<
 			x.style.display = "none";
 		});
 		selected.style.display = this.displays.get(selected) || "block";
+		const tab = selected.getAttribute("tab");
 
-		this.emit("changed", selected.getAttribute("tab"));
+		if (tab) this.emit("changed", tab);
 	}
 }

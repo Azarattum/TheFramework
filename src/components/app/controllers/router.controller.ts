@@ -5,7 +5,7 @@ import { format } from "../../common/utils.class";
  * Client-side router controller.
  */
 export default class Router extends Controller<
-	["navigated", (path: string, stateless: string) => void]
+	["navigated", (path: string, stateless: boolean) => void]
 >(Relation.Default) {
 	/**Format string for titles */
 	public titleFormat: string = "{0} - {1}";

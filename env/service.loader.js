@@ -93,7 +93,7 @@ class ServiceWrapper {
 
 			//Typical named callbacks
 			if (this.callbacks[type]) {
-				this.callbacks[type].forEach(x => x.call(x, ...args));
+				this.callbacks[type].forEach(x => x(...args));
 			}
 
 			//Keep listening for incoming events

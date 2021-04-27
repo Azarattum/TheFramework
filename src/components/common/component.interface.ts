@@ -60,6 +60,12 @@ export type EventFunc<T extends EventBase> = T extends string ? func : T[1];
 export type EventResult<T extends EventBase> = ReturnType<
 	T[1] extends func ? T[1] : any
 >;
+/**
+ * Arguments' types of the event's callback
+ */
+export type EventArgs<T extends EventBase> = Parameters<
+	T[1] extends func ? T[1] : any
+>;
 
 /**
  * Exposes function with `this.expose()` of current component.

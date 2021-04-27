@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint @typescript-eslint/explicit-function-return-type: 0 */
 import {
+	EventArgs,
 	EventBase,
 	EventFunc,
 	EventName,
@@ -87,7 +88,7 @@ export default function Controller<
 		 * @param type Event type
 		 * @param args Arguments to pass to the callbacks
 		 */
-		protected emit(type: EventName<T>, ...args: any[]): boolean {
+		protected emit(type: EventName<T>, ...args: EventArgs<T>): boolean {
 			const callbacks = this.callbacks[type];
 			callbacks?.forEach(x => x(...args));
 
@@ -100,7 +101,10 @@ export default function Controller<
 		 * @param type Executor type
 		 * @param args Arguments to pass to the executor
 		 */
-		protected want(type: EventName<U>, ...args: any): EventResult<U> {
+		protected want(
+			type: EventName<U>,
+			...args: EventArgs<U>
+		): EventResult<U> {
 			const wish = this.wishes[type];
 			if (!wish) {
 				throw new Error(

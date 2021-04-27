@@ -172,7 +172,7 @@ describe("Application", () => {
 			public close(): void {
 				close();
 			}
-			public static get relations(): object[] {
+			public static get relations(): obj[] {
 				return [{}, {}, {}, {}];
 			}
 		}
@@ -308,7 +308,7 @@ describe("Application", () => {
 			public static type = "Controllers";
 			public name = "NonRelational";
 			public constructor({ refresh }: IComponentOptions) {
-				refresh();
+				refresh?.();
 			}
 			public static get relations(): null {
 				return null;
@@ -324,12 +324,12 @@ describe("Application", () => {
 			public static type = "Controllers";
 			public name = "Relational";
 			public constructor({ refresh }: IComponentOptions) {
-				refresh();
+				refresh?.();
 			}
 			public close(): void {
 				close();
 			}
-			public static get relations(): object[] {
+			public static get relations(): obj[] {
 				return relations;
 			}
 		}
@@ -381,7 +381,7 @@ describe("Application", () => {
 		class MockComponent {
 			public static type = "Service";
 			public name = "Promise";
-			public static get relations(): object[] {
+			public static get relations(): obj[] {
 				return [{}];
 			}
 		}
@@ -425,7 +425,7 @@ describe("Application", () => {
 			public initialize(): void {
 				this.state = "Initialized";
 			}
-			public static get relations(): object[] {
+			public static get relations(): obj[] {
 				return [{}, {}];
 			}
 		}

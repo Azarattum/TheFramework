@@ -94,6 +94,7 @@ export default class Utils {
 	 * @param proto A prototype value for conversion
 	 * @param data Data value to convert
 	 */
+	// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 	public static convertTo(proto: any, data: any): any {
 		if (typeof proto === "string") {
 			return typeof data === "object"
@@ -165,6 +166,20 @@ export default class Utils {
 	public static async sleep(ms: number): Promise<void> {
 		return new Promise(resolve => setTimeout(resolve, ms));
 	}
+
+	/**
+	 * Returns a copy of the array but shuffled
+	 * @param array Array to shuffle
+	 */
+	public static shuffle<T>(array: T[]): T[] {
+		array = [...array];
+		for (let i = array.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[array[i], array[j]] = [array[j], array[i]];
+		}
+
+		return array;
+	}
 }
 
 /**
@@ -180,8 +195,11 @@ export enum LogType {
 
 //Shortcuts for exports
 const log = Utils.log;
+const wrn = (text: string): void => Utils.log(text, LogType.WARNING);
+const err = (text: string): void => Utils.log(text, LogType.ERROR);
 const format = Utils.format;
 const generateID = Utils.generateID;
 const convertTo = Utils.convertTo;
 const sleep = Utils.sleep;
-export { log, format, generateID, convertTo, sleep };
+const shuffle = Utils.shuffle;
+export { log, wrn, err, format, generateID, convertTo, sleep, shuffle };

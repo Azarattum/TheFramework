@@ -1,15 +1,15 @@
 const Path = require("path");
 const TerserPlugin = require("terser-webpack-plugin");
-const WebpackCleanupPlugin = require("webpack-cleanup-plugin");
+const CleanPlugin = require("clean-webpack-plugin").CleanWebpackPlugin;
 const NodeExternals = require("webpack-node-externals");
 
-const prod = process.argv.indexOf("-p") !== -1;
+const prod = process.argv.indexOf("production") !== -1;
 
 module.exports = {
 	entry: "./src/index.ts",
 	mode: prod ? "production" : "development",
 	devtool: prod ? undefined : "source-map",
-	plugins: [prod ? new WebpackCleanupPlugin() : () => {}],
+	plugins: [new CleanPlugin()],
 	module: {
 		rules: [
 			{
@@ -44,7 +44,7 @@ module.exports = {
 			}
 		]
 	},
-	externals: [NodeExternals({ whitelist: [/^comlink/] })],
+	externals: [NodeExternals({ allowlist: [/^comlink/] })],
 	resolve: {
 		extensions: [".ts", ".js"]
 	},
@@ -55,6 +55,7 @@ module.exports = {
 	},
 	optimization: {
 		concatenateModules: false,
+		usedExports: false,
 		minimize: prod ? true : false,
 		minimizer: prod
 			? [
